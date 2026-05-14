@@ -25,6 +25,28 @@ const emptyData = {
   history: [],
 };
 
+function createEmptyData(overrides = {}) {
+  return {
+    profile: { ...emptyData.profile, ...(overrides.profile || {}) },
+    business: { ...emptyData.business, ...(overrides.business || {}) },
+    clients: [...(overrides.clients || [])],
+    budgets: [...(overrides.budgets || [])],
+    orders: [...(overrides.orders || [])],
+    frequentServices: [...(overrides.frequentServices || [])],
+    history: [...(overrides.history || [])],
+  };
+}
+
+function normalizeStoredData(data, account = {}) {
+  return createEmptyData({
+    ...data,
+    profile: {
+      ...(data?.profile || {}),
+      email: data?.profile?.email || account.email || "",
+    },
+  });
+}
+
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: "▦" },
   { id: "clients", label: "Clientes", icon: "◉" },
@@ -639,8 +661,7 @@ function AuthScreen({ onLogin }) {
         password,
         createdAt: new Date().toISOString(),
       };
-      const data = {
-        ...emptyData,
+      const data = createEmptyData({
         profile: {
           name: account.name,
           surname: account.surname,
@@ -661,7 +682,7 @@ function AuthScreen({ onLogin }) {
             date: new Date().toISOString(),
           },
         ],
-      };
+      });
       writeJSON(ACCOUNTS_KEY, [account, ...accounts]);
       writeJSON(dataKey(email), data);
       writeJSON(SESSION_KEY, { email });
@@ -675,7 +696,8 @@ function AuthScreen({ onLogin }) {
       setError("Email o contraseña incorrectos.");
       return;
     }
-    const data = readJSON(dataKey(email), emptyData);
+    const data = normalizeStoredData(readJSON(dataKey(email), createEmptyData()), account);
+    writeJSON(dataKey(email), data);
     writeJSON(SESSION_KEY, { email });
     notify("Sesión iniciada correctamente.");
     onLogin(account, data);
@@ -710,8 +732,7 @@ function AuthScreen({ onLogin }) {
           createdAt: new Date().toISOString(),
         };
 
-        data = {
-          ...emptyData,
+        data = createEmptyData({
           profile: {
             name: account.name,
             surname: account.surname,
@@ -728,11 +749,13 @@ function AuthScreen({ onLogin }) {
               date: new Date().toISOString(),
             },
           ],
-        };
+        });
 
         writeJSON(ACCOUNTS_KEY, [account, ...accounts]);
-        writeJSON(dataKey(email), data);
       }
+
+      data = normalizeStoredData(data || createEmptyData(), account);
+      writeJSON(dataKey(email), data);
 
       writeJSON(SESSION_KEY, { email });
       notify("Sesión iniciada con Google.");
@@ -1935,10 +1958,11 @@ function Settings({ data, setData, account, exportData, resetData }) {
 function AppShell({ account, initialData, onLogout }) {
   const [active, setActive] = useState("dashboard");
   const [search, setSearch] = useState("");
-  const [data, setData] = useState(initialData);
+  const accountEmail = normalizeEmail(account.email);
+  const [data, setData] = useState(() => normalizeStoredData(initialData, account));
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
-  useEffect(() => { writeJSON(dataKey(account.email), data); }, [data, account.email]);
+  useEffect(() => { writeJSON(dataKey(accountEmail), data); }, [data, accountEmail]);
   useEffect(() => {
     if (!menuOpen) return undefined;
     const previousOverflow = document.body.style.overflow;
@@ -1963,7 +1987,7 @@ function AppShell({ account, initialData, onLogout }) {
     }
   }
   const exportData = useCallback(() => { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `nexo-management-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }, [data]);
-  const resetData = useCallback(async () => { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory({ ...emptyData, profile: data.profile, business: data.business }, "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }, [data.business, data.profile]);
+  const resetData = useCallback(async () => { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory(createEmptyData({ profile: data.profile, business: data.business }), "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }, [data.business, data.profile]);
   const content = useMemo(() => {
     if (active === "dashboard") return <Dashboard data={data} setData={setData} />;
     if (active === "clients") return <Clients data={data} setData={setData} search={search} />;
@@ -1978,9 +2002,9 @@ function AppShell({ account, initialData, onLogout }) {
 
 export default function App() {
   const [account, setAccount] = useState(() => { const session = readJSON(SESSION_KEY, null); if (!session) return null; return readJSON(ACCOUNTS_KEY, []).find((a) => a.email === session.email) || null; });
-  const [initialData, setInitialData] = useState(() => { const session = readJSON(SESSION_KEY, null); if (!session) return null; return readJSON(dataKey(session.email), emptyData); });
+  const [initialData, setInitialData] = useState(() => { const session = readJSON(SESSION_KEY, null); if (!session) return null; return normalizeStoredData(readJSON(dataKey(session.email), createEmptyData()), { email: session.email }); });
   function login(nextAccount, nextData) { setAccount(nextAccount); setInitialData(nextData); }
   function logout() { localStorage.removeItem(SESSION_KEY); setAccount(null); setInitialData(null); notify("Sesión cerrada."); }
   if (!account || !initialData) return <AuthScreen onLogin={login} />;
-  return <AppShell account={account} initialData={initialData} onLogout={logout} />;
+  return <AppShell key={account.email} account={account} initialData={initialData} onLogout={logout} />;
 }
