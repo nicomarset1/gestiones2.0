@@ -809,46 +809,22 @@ function Sidebar({ active, setActive, data }) {
   );
 }
 
-function Topbar({ search, setSearch, active, setActive, account, data, onLogout }) {
+function Topbar({ search, setSearch, menuOpen, toggleMenu, closeMenu, account, data, setActive, onLogout }) {
   const [open, setOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuClosing, setMenuClosing] = useState(false);
   const fullName = formatFullName(data.profile) || `${account.name || ""} ${account.surname || ""}`.trim();
   const initials = fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "NM";
-
-  useEffect(() => {
-    if (!menuOpen) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [menuOpen]);
-
-  function closeMenu() {
-    setMenuClosing(true);
-    window.setTimeout(() => {
-      setMenuOpen(false);
-      setMenuClosing(false);
-    }, 220);
-  }
-
-  function openMenu() {
-    setMenuClosing(false);
-    setMenuOpen(true);
-    setOpen(false);
-  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[#080808]/75 px-5 py-3 backdrop-blur-xl lg:px-8">
       <div className="flex flex-row items-center gap-3 md:justify-between">
         <button
           onClick={() => {
-            if (menuOpen) closeMenu();
-            else openMenu();
+            toggleMenu();
+            setOpen(false);
           }}
           className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.06] transition hover:border-white/20 hover:bg-white/[0.09] lg:hidden"
           aria-label="Abrir menú"
+          aria-expanded={menuOpen}
         >
           <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
           <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
@@ -871,45 +847,50 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
           </div>
         </div>
       </div>
-      {menuOpen && (
-        <div className={`fixed inset-0 z-[120] bg-black/45 backdrop-blur-xl lg:hidden ${menuClosing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onClick={closeMenu}>
-          <aside
-            className={`min-h-screen h-dvh w-[min(20rem,86vw)] overflow-y-auto border-r border-white/10 bg-zinc-950 p-5 shadow-2xl shadow-black/80 ${menuClosing ? "nm-menu-drawer-out" : "nm-menu-drawer-in"}`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-7 flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-lg text-white">NM</div>
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-white">{data.business.name || "Nexo Management"}</p>
-                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">Menú</p>
-                </div>
-              </div>
-              <button onClick={closeMenu} className="group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] transition hover:border-white/20 hover:bg-white/[0.12]" aria-label="Cerrar menú">
-                <span className="nm-close-line-a absolute h-0.5 w-5 rounded-full bg-zinc-100 transition-transform duration-200 group-hover:scale-110" />
-                <span className="nm-close-line-b absolute h-0.5 w-5 rounded-full bg-zinc-100 transition-transform duration-200 group-hover:scale-110" />
-              </button>
-            </div>
-
-            <nav className="space-y-2">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActive(item.id);
-                    closeMenu();
-                  }}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.1] text-white" : "text-zinc-300 hover:bg-white/[0.06] hover:text-white"}`}
-                >
-                  <span className="font-mono text-sm">{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </nav>
-          </aside>
-        </div>
-      )}
     </header>
+  );
+}
+
+function MobileMenuDrawer({ open, closing, active, setActive, data, closeMenu }) {
+  if (!open) return null;
+
+  return (
+    <div className={`fixed inset-0 z-[120] bg-black/45 backdrop-blur-xl lg:hidden ${closing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onClick={closeMenu}>
+      <aside
+        className={`min-h-screen h-dvh w-[min(20rem,86vw)] overflow-y-auto border-r border-white/10 bg-zinc-950 p-5 shadow-2xl shadow-black/80 ${closing ? "nm-menu-drawer-out" : "nm-menu-drawer-in"}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-7 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-lg text-white">NM</div>
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-white">{data.business.name || "Nexo Management"}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">Menú</p>
+            </div>
+          </div>
+          <button onClick={closeMenu} className="group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] transition hover:border-white/20 hover:bg-white/[0.12]" aria-label="Cerrar menú">
+            <span className="nm-close-line-a absolute h-0.5 w-5 rounded-full bg-zinc-100 transition-transform duration-200 group-hover:scale-110" />
+            <span className="nm-close-line-b absolute h-0.5 w-5 rounded-full bg-zinc-100 transition-transform duration-200 group-hover:scale-110" />
+          </button>
+        </div>
+
+        <nav className="space-y-2">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActive(item.id);
+                closeMenu();
+              }}
+              className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.1] text-white" : "text-zinc-300 hover:bg-white/[0.06] hover:text-white"}`}
+            >
+              <span className="font-mono text-sm">{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
+    </div>
   );
 }
 
@@ -1955,7 +1936,32 @@ function AppShell({ account, initialData, onLogout }) {
   const [active, setActive] = useState("dashboard");
   const [search, setSearch] = useState("");
   const [data, setData] = useState(initialData);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuClosing, setMenuClosing] = useState(false);
   useEffect(() => { writeJSON(dataKey(account.email), data); }, [data, account.email]);
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [menuOpen]);
+  function closeMenu() {
+    if (!menuOpen || menuClosing) return;
+    setMenuClosing(true);
+    window.setTimeout(() => {
+      setMenuOpen(false);
+      setMenuClosing(false);
+    }, 220);
+  }
+  function toggleMenu() {
+    if (menuOpen) closeMenu();
+    else {
+      setMenuClosing(false);
+      setMenuOpen(true);
+    }
+  }
   const exportData = useCallback(() => { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `nexo-management-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }, [data]);
   const resetData = useCallback(async () => { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory({ ...emptyData, profile: data.profile, business: data.business }, "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }, [data.business, data.profile]);
   const content = useMemo(() => {
@@ -1967,7 +1973,7 @@ function AppShell({ account, initialData, onLogout }) {
     if (active === "history") return <History data={data} search={search} />;
     return <Settings data={data} setData={setData} account={account} exportData={exportData} resetData={resetData} />;
   }, [active, data, search, account, exportData, resetData]);
-  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} active={active} setActive={setActive} account={account} data={data} onLogout={onLogout} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
+  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><MobileMenuDrawer open={menuOpen} closing={menuClosing} active={active} setActive={setActive} data={data} closeMenu={closeMenu} /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} account={account} data={data} setActive={setActive} onLogout={onLogout} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
 }
 
 export default function App() {
