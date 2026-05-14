@@ -847,7 +847,7 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
             if (menuOpen) closeMenu();
             else openMenu();
           }}
-          className={`flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border transition lg:hidden ${menuOpen ? "border-white/20 bg-white/[0.1]" : "border-white/10 bg-white/[0.06]"}`}
+          className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.06] transition hover:border-white/20 hover:bg-white/[0.09] lg:hidden"
           aria-label="Abrir menú"
         >
           <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
@@ -872,10 +872,10 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
         </div>
       </div>
       {menuOpen && (
-        <div className={`fixed inset-0 z-[120] bg-black/45 backdrop-blur-xl lg:hidden ${menuClosing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onPointerDown={closeMenu}>
+        <div className={`fixed inset-0 z-[120] bg-black/45 backdrop-blur-xl lg:hidden ${menuClosing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onClick={closeMenu}>
           <aside
             className={`min-h-screen h-dvh w-[min(20rem,86vw)] overflow-y-auto border-r border-white/10 bg-zinc-950 p-5 shadow-2xl shadow-black/80 ${menuClosing ? "nm-menu-drawer-out" : "nm-menu-drawer-in"}`}
-            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-7 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
@@ -885,7 +885,10 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
                   <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">Menú</p>
                 </div>
               </div>
-              <button onClick={closeMenu} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] text-xl leading-none text-zinc-200">×</button>
+              <button onClick={closeMenu} className="group relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] transition hover:border-white/20 hover:bg-white/[0.12]" aria-label="Cerrar menú">
+                <span className="nm-close-line-a absolute h-0.5 w-5 rounded-full bg-zinc-100 transition-transform duration-200 group-hover:scale-110" />
+                <span className="nm-close-line-b absolute h-0.5 w-5 rounded-full bg-zinc-100 transition-transform duration-200 group-hover:scale-110" />
+              </button>
             </div>
 
             <nav className="space-y-2">

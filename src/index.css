@@ -66,6 +66,24 @@ textarea {
   }
 }
 
+@keyframes nmCloseLineA {
+  from {
+    transform: translateY(-5px) rotate(0deg);
+  }
+  to {
+    transform: translateY(0) rotate(45deg);
+  }
+}
+
+@keyframes nmCloseLineB {
+  from {
+    transform: translateY(5px) rotate(0deg);
+  }
+  to {
+    transform: translateY(0) rotate(-45deg);
+  }
+}
+
 .nm-menu-overlay-in {
   animation: nmMenuOverlayIn 180ms ease-out both;
 }
@@ -80,4 +98,12 @@ textarea {
 
 .nm-menu-drawer-out {
   animation: nmMenuDrawerOut 220ms ease-in both;
+}
+
+.nm-close-line-a {
+  animation: nmCloseLineA 180ms ease-out both;
+}
+
+.nm-close-line-b {
+  animation: nmCloseLineB 180ms ease-out both;
 }
