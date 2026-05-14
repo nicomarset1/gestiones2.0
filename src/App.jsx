@@ -166,11 +166,11 @@ function ToastHost() {
   }, []);
 
   return (
-    <div className="fixed right-5 top-5 z-[100] space-y-3">
+    <div className="fixed left-4 right-4 top-4 z-[100] space-y-3 sm:left-auto sm:right-5 sm:top-5 sm:w-80">
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className="min-w-72 rounded-2xl border border-white/10 bg-zinc-950/95 px-5 py-3 text-sm text-zinc-200 shadow-2xl shadow-black/60 backdrop-blur-xl"
+          className="w-full rounded-2xl border border-white/10 bg-zinc-950/95 px-5 py-3 text-sm text-zinc-200 shadow-2xl shadow-black/60 backdrop-blur-xl"
         >
           <div className="flex items-center gap-3">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -258,7 +258,7 @@ function Badge({ children, tone = "neutral" }) {
 
 function Panel({ children, className = "" }) {
   return (
-    <div className={`rounded-3xl border border-white/10 bg-zinc-950/70 shadow-2xl shadow-black/30 backdrop-blur-xl ${className}`}>
+    <div className={`max-w-full rounded-3xl border border-white/10 bg-zinc-950/70 shadow-2xl shadow-black/30 backdrop-blur-xl ${className}`}>
       {children}
     </div>
   );
@@ -268,7 +268,7 @@ function PageHeader({ label, title, text }) {
   return (
     <div>
       <p className="text-xs uppercase tracking-[0.35em] text-zinc-600">{label}</p>
-      <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white md:text-5xl">{title}</h1>
+      <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl md:text-5xl">{title}</h1>
       {text && <p className="mt-3 max-w-3xl leading-7 text-zinc-500">{text}</p>}
     </div>
   );
@@ -687,13 +687,13 @@ function AuthScreen({ onLogin }) {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#080808] text-zinc-100">
+    <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100">
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" />
       <div className="relative z-10 mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-5 py-16 lg:grid-cols-[1fr_0.9fr]">
         <div>
           <div className="mb-6 inline-flex rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-zinc-400">Sistema operativo para pequeños negocios</div>
-          <h1 className="text-5xl font-semibold tracking-[-0.07em] text-white md:text-7xl">Gestiones Marset<span className="text-zinc-600">.</span></h1>
-          <p className="mt-7 max-w-2xl text-lg leading-8 text-zinc-400">Centralizá clientes, presupuestos, órdenes, pagos, historial y resumen mensual desde una interfaz profesional, clara y funcional.</p>
+          <h1 className="text-4xl font-semibold tracking-[-0.06em] text-white sm:text-5xl md:text-7xl">Gestiones Marset<span className="text-zinc-600">.</span></h1>
+          <p className="mt-7 max-w-2xl text-base leading-7 text-zinc-400 sm:text-lg sm:leading-8">Centralizá clientes, presupuestos, órdenes, pagos, historial y resumen mensual desde una interfaz profesional, clara y funcional.</p>
         </div>
 
         <Panel className="p-6">
@@ -735,16 +735,21 @@ function Sidebar({ active, setActive, data }) {
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-72 border-r border-white/10 bg-[#090909]/95 p-5 backdrop-blur-xl lg:block">
       <div className="mb-9 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-lg text-white">GM</div>
-        <div>
-          <p className="font-semibold text-white">{data.business.name || "Gestiones Marset"}</p>
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-lg text-white">GM</div>
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-white">{data.business.name || "Gestiones Marset"}</p>
           <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">Operations System</p>
         </div>
       </div>
       <nav className="space-y-2">
         {navItems.map((item) => (
-          <button key={item.id} onClick={() => setActive(item.id)} className={`flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.08] text-white" : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"}`}>
-            <span className="font-mono text-sm">{item.icon}</span>{item.label}
+          <button
+            key={item.id}
+            onClick={() => setActive(item.id)}
+            className={`flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.08] text-white" : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"}`}
+          >
+            <span className="font-mono text-sm">{item.icon}</span>
+            <span className="truncate">{item.label}</span>
           </button>
         ))}
       </nav>
@@ -752,29 +757,101 @@ function Sidebar({ active, setActive, data }) {
   );
 }
 
-function Topbar({ search, setSearch, account, data, setActive, onLogout }) {
+function MobileNav({ active, setActive, data, open, onClose }) {
+  if (!open) return null;
+
+  function choose(id) {
+    setActive(id);
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-[95] lg:hidden">
+      <button
+        type="button"
+        aria-label="Cerrar menú"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+      />
+
+      <aside className="absolute left-0 top-0 h-full w-[86vw] max-w-sm overflow-y-auto border-r border-white/10 bg-[#090909] p-5 shadow-2xl shadow-black/70">
+        <div className="mb-7 flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-lg text-white">GM</div>
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-white">{data.business.name || "Gestiones Marset"}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">Menú</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-zinc-300"
+          >
+            ×
+          </button>
+        </div>
+
+        <nav className="space-y-2">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => choose(item.id)}
+              className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.08] text-white" : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"}`}
+            >
+              <span className="font-mono text-sm">{item.icon}</span>
+              <span className="truncate">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
+    </div>
+  );
+}
+
+function Topbar({ search, setSearch, account, data, setActive, onLogout, onOpenMenu }) {
   const [open, setOpen] = useState(false);
   const fullName = formatFullName(data.profile) || `${account.name || ""} ${account.surname || ""}`.trim();
   const initials = fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "GM";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#080808]/75 px-5 py-3 backdrop-blur-xl lg:px-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="w-full max-w-xl">
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar clientes, presupuestos, órdenes, pagos..." className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-white/25" />
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#080808]/80 px-4 py-3 backdrop-blur-xl sm:px-5 lg:px-8">
+      <div className="flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={onOpenMenu}
+          aria-label="Abrir menú"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-xl leading-none text-zinc-200 lg:hidden"
+        >
+          ☰
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar clientes, presupuestos, órdenes..."
+            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-white/25"
+          />
         </div>
-        <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-300 sm:flex"><span className="h-2 w-2 rounded-full bg-emerald-400" />Sistema activo</div>
-          <div className="relative">
-            <button onClick={() => setOpen(!open)} className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-sm text-white">{initials}</button>
-            {open && (
-              <div className="absolute right-0 top-14 w-72 rounded-3xl border border-white/10 bg-zinc-950 p-3 shadow-2xl shadow-black/60">
-                <div className="border-b border-white/10 p-3"><p className="font-medium text-white">{fullName}</p><p className="mt-1 text-sm text-zinc-500">{data.profile.email || account.email}</p></div>
-                <button onClick={() => { setActive("settings"); setOpen(false); }} className="mt-3 w-full rounded-2xl px-3 py-2 text-left text-sm text-zinc-400 hover:bg-white/[0.06] hover:text-white">Configuración</button>
-                <button onClick={onLogout} className="w-full rounded-2xl px-3 py-2 text-left text-sm text-red-300 hover:bg-red-400/10">Cerrar sesión</button>
+
+        <div className="hidden shrink-0 items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-300 sm:flex">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          Sistema activo
+        </div>
+
+        <div className="relative shrink-0">
+          <button onClick={() => setOpen(!open)} className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-sm text-white">{initials}</button>
+          {open && (
+            <div className="absolute right-0 top-14 w-[calc(100vw-2rem)] max-w-72 rounded-3xl border border-white/10 bg-zinc-950 p-3 shadow-2xl shadow-black/60">
+              <div className="border-b border-white/10 p-3">
+                <p className="truncate font-medium text-white">{fullName}</p>
+                <p className="mt-1 truncate text-sm text-zinc-500">{data.profile.email || account.email}</p>
               </div>
-            )}
-          </div>
+              <button onClick={() => { setActive("settings"); setOpen(false); }} className="mt-3 w-full rounded-2xl px-3 py-2 text-left text-sm text-zinc-400 hover:bg-white/[0.06] hover:text-white">Configuración</button>
+              <button onClick={onLogout} className="w-full rounded-2xl px-3 py-2 text-left text-sm text-red-300 hover:bg-red-400/10">Cerrar sesión</button>
+            </div>
+          )}
         </div>
       </div>
     </header>
@@ -831,10 +908,10 @@ function DashboardDetailModal({ type, data, orders, onClose }) {
       className="fixed inset-0 z-[80] bg-black/45 backdrop-blur-sm lg:pl-72"
       onMouseDown={onClose}
     >
-      <div className="flex min-h-screen items-center justify-center px-4 py-8">
+      <div className="flex min-h-screen items-center justify-center px-3 py-5 sm:px-4 sm:py-8">
         <div
           onMouseDown={(e) => e.stopPropagation()}
-          className="max-h-[78vh] w-full max-w-4xl overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950 shadow-2xl shadow-black/70"
+          className="max-h-[84vh] w-full max-w-4xl overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] border border-white/10 bg-zinc-950 shadow-2xl shadow-black/70"
         >
           <div className="flex items-start justify-between gap-5 border-b border-white/10 p-5">
             <div>
@@ -978,7 +1055,7 @@ function Dashboard({ data, setData }) {
         <button onClick={() => setDetail("pendingBalance")} className="h-full w-full text-left"><StatCard label="Saldo pendiente" value={currency(pendingRevenue)} meta="Pendiente de cobro del mes" icon="PG" /></button>
       </div>
       <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-        <Panel className="p-6"><div className="mb-8 flex items-center justify-between"><div><h3 className="text-xl font-semibold text-white">Ingresos mensuales</h3><p className="mt-1 text-sm text-zinc-500">Evolución visual basada en órdenes reales.</p></div><Badge>{monthLabel}</Badge></div><div className="flex h-72 items-end gap-3">{bars.map((bar) => <div key={bar.key} className="flex flex-1 flex-col items-center gap-3"><button onClick={() => openMonthlyReport({ data, month: bar })} className="flex h-56 w-full items-end rounded-2xl bg-white/[0.035] p-1 transition hover:bg-white/[0.06]"><div className="w-full rounded-xl bg-gradient-to-t from-zinc-500 to-zinc-100" style={{ height: `${Math.max(bar.percent, 4)}%` }} /></button><span className="text-xs text-zinc-600">{bar.label}</span></div>)}</div></Panel>
+        <Panel className="p-6"><div className="mb-8 flex items-center justify-between"><div><h3 className="text-xl font-semibold text-white">Ingresos mensuales</h3><p className="mt-1 text-sm text-zinc-500">Evolución visual basada en órdenes reales.</p></div><Badge>{monthLabel}</Badge></div><div className="overflow-x-auto pb-2"><div className="flex h-72 min-w-[520px] items-end gap-3">{bars.map((bar) => <div key={bar.key} className="flex flex-1 flex-col items-center gap-3"><button onClick={() => openMonthlyReport({ data, month: bar })} className="flex h-56 w-full items-end rounded-2xl bg-white/[0.035] p-1 transition hover:bg-white/[0.06]"><div className="w-full rounded-xl bg-gradient-to-t from-zinc-500 to-zinc-100" style={{ height: `${Math.max(bar.percent, 4)}%` }} /></button><span className="text-xs text-zinc-600">{bar.label}</span></div>)}</div></div></Panel>
         <Panel className="p-6"><div className="flex items-center justify-between gap-4"><div><h3 className="text-xl font-semibold text-white">Estado de cobro</h3><p className="mt-1 text-sm text-zinc-500">Pagado real vs pendiente real.</p></div><Badge>{monthLabel}</Badge></div><div className="mt-8 flex justify-center"><div className="relative flex h-44 w-44 items-center justify-center rounded-full" style={{ background: `conic-gradient(rgb(228 228 231) ${paidPercent}%, rgb(63 63 70) ${paidPercent}% 100%)` }}><div className="flex h-28 w-28 items-center justify-center rounded-full bg-zinc-950 text-center"><div><p className="text-3xl font-semibold text-white">{paidPercent}%</p><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Cobrado</p></div></div></div></div><div className="mt-8 space-y-3"><PaymentLine label="Pagado" value={paidRevenue} /><PaymentLine label="Pendiente" value={pendingRevenue} /></div></Panel>
       </div>
       <OrdersTable orders={monthOrders.slice(0, 5)} compact data={data} onFinish={(id) => finishOrder(data, setData, id)} onPay={(id) => markPaid(data, setData, id)} />
@@ -1028,8 +1105,8 @@ function ClientListModal({ data, clients, onClose, onEdit, onDelete, onView }) {
 
   return (
     <div className="fixed inset-0 z-[80] bg-black/45 backdrop-blur-sm lg:pl-72" onMouseDown={onClose}>
-      <div className="flex min-h-screen items-center justify-center px-4 py-8">
-        <div onMouseDown={(e) => e.stopPropagation()} className="max-h-[78vh] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950 shadow-2xl shadow-black/70">
+      <div className="flex min-h-screen items-center justify-center px-3 py-5 sm:px-4 sm:py-8">
+        <div onMouseDown={(e) => e.stopPropagation()} className="max-h-[84vh] w-full max-w-5xl overflow-hidden rounded-[1.5rem] sm:rounded-[2rem] border border-white/10 bg-zinc-950 shadow-2xl shadow-black/70">
           <div className="flex items-start justify-between gap-5 border-b border-white/10 p-5">
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-zinc-600">Clientes</p>
@@ -1662,10 +1739,29 @@ function Settings({ data, setData, account, exportData, resetData }) {
 function AppShell({ account, initialData, onLogout }) {
   const [active, setActive] = useState("dashboard");
   const [search, setSearch] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [data, setData] = useState(initialData);
+
   useEffect(() => { writeJSON(dataKey(account.email), data); }, [data, account.email]);
-  function exportData() { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `gestiones-marset-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }
-  async function resetData() { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory({ ...emptyData, profile: data.profile, business: data.business }, "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }
+
+  function exportData() {
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `gestiones-marset-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON."));
+    notify("Datos exportados correctamente.");
+  }
+
+  async function resetData() {
+    if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return;
+    setData(addHistory({ ...emptyData, profile: data.profile, business: data.business }, "Sistema", "Datos restaurados", "Se restauraron los datos operativos."));
+    notify("Datos restaurados correctamente.");
+  }
+
   const content = useMemo(() => {
     if (active === "dashboard") return <Dashboard data={data} setData={setData} />;
     if (active === "clients") return <Clients data={data} setData={setData} search={search} />;
@@ -1675,7 +1771,34 @@ function AppShell({ account, initialData, onLogout }) {
     if (active === "history") return <History data={data} search={search} />;
     return <Settings data={data} setData={setData} account={account} exportData={exportData} resetData={resetData} />;
   }, [active, data, search, account]);
-  return <main className="min-h-screen bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 lg:pl-72"><Topbar search={search} setSearch={setSearch} account={account} data={data} setActive={setActive} onLogout={onLogout} /><div className="px-5 py-8 lg:px-8"><div className="mb-6 flex gap-2 overflow-x-auto lg:hidden">{navItems.map((item) => <button key={item.id} onClick={() => setActive(item.id)} className={`shrink-0 rounded-full border px-4 py-2 text-sm ${active === item.id ? "border-white/20 bg-white/[0.1] text-white" : "border-white/10 bg-white/[0.035] text-zinc-500"}`}>{item.label}</button>)}</div>{content}</div></div></main>;
+
+  return (
+    <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100">
+      <style>{`html, body, #root { overflow-x: hidden; } * { min-width: 0; }`}</style>
+      <ToastHost />
+      <ConfirmHost />
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" />
+      <Sidebar active={active} setActive={setActive} data={data} />
+      <MobileNav active={active} setActive={setActive} data={data} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+
+      <div className="relative z-10 min-w-0 lg:pl-72">
+        <Topbar
+          search={search}
+          setSearch={setSearch}
+          account={account}
+          data={data}
+          setActive={setActive}
+          onLogout={onLogout}
+          onOpenMenu={() => setMobileMenuOpen(true)}
+        />
+        <div className="min-w-0 px-4 py-6 sm:px-5 sm:py-8 lg:px-8">
+          <div className="min-w-0 max-w-full overflow-hidden">
+            {content}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
 }
 
 export default function App() {
