@@ -816,11 +816,14 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
   const initials = fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "NM";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#080808]/90 px-4 py-3 backdrop-blur-xl sm:px-5 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#080808]/75 px-5 py-3 backdrop-blur-xl lg:px-8">
       <div className="flex flex-row items-center gap-3 md:justify-between">
         <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.06] lg:hidden"
+          onClick={() => {
+            setMenuOpen(!menuOpen);
+            setOpen(false);
+          }}
+          className={`flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border transition lg:hidden ${menuOpen ? "border-white/20 bg-white/[0.1]" : "border-white/10 bg-white/[0.06]"}`}
           aria-label="Abrir menú"
         >
           <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
@@ -833,7 +836,7 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
         <div className="flex shrink-0 items-center gap-3">
           <div className="hidden items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-300 sm:flex"><span className="h-2 w-2 rounded-full bg-emerald-400" />Sistema activo</div>
           <div className="relative">
-            <button onClick={() => setOpen(!open)} className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-sm text-white">{initials}</button>
+            <button onClick={() => { setOpen(!open); setMenuOpen(false); }} className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-sm text-white">{initials}</button>
             {open && (
               <div className="absolute right-0 top-14 w-[min(18rem,calc(100vw-2rem))] rounded-3xl border border-white/10 bg-zinc-950 p-3 shadow-2xl shadow-black/60">
                 <div className="border-b border-white/10 p-3"><p className="font-medium text-white">{fullName}</p><p className="mt-1 text-sm text-zinc-500">{data.profile.email || account.email}</p></div>
@@ -845,8 +848,8 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
         </div>
       </div>
       {menuOpen && (
-        <div className="mt-3 rounded-3xl border border-white/10 bg-zinc-950 p-3 shadow-2xl shadow-black/60 lg:hidden">
-          <div className="grid gap-2">
+        <div className="mt-3 rounded-3xl border border-white/10 bg-zinc-950/95 p-3 shadow-2xl shadow-black/60 lg:hidden">
+          <div className="flex flex-wrap gap-2">
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -854,7 +857,7 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
                   setActive(item.id);
                   setMenuOpen(false);
                 }}
-                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.1] text-white" : "text-zinc-500 hover:bg-white/[0.05] hover:text-zinc-200"}`}
+                className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${active === item.id ? "border-white/20 bg-white/[0.1] text-white" : "border-white/10 bg-white/[0.035] text-zinc-500 hover:border-white/20 hover:text-zinc-200"}`}
               >
                 <span className="font-mono text-sm">{item.icon}</span>
                 <span>{item.label}</span>
