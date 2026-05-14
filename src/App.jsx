@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const APP_KEY = "nexo-management-v1";
 const ACCOUNTS_KEY = `${APP_KEY}:accounts`;
@@ -101,15 +101,6 @@ function currency(value) {
     currency: "ARS",
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
-}
-
-function dateLabel(value) {
-  if (!value) return "—";
-  return new Date(`${value}T12:00:00`).toLocaleDateString("es-AR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
 }
 
 function dateTimeLabel(value) {
@@ -379,7 +370,7 @@ function openDocumentWindow({
   const businessName = data.business.name || "Nexo Management";
   const client = getClient(data, clientName);
   const total = Number(amount || 0);
-  const paid = Number(arguments[0]?.paidAmount || 0);
+  const paid = Number(paidAmount || 0);
   const remaining = Math.max(total - paid, 0);
   const responsible = formatFullName(data.profile) || "—";
   const generatedDate = new Date().toLocaleDateString("es-AR");
@@ -503,7 +494,6 @@ function openClientsListDocument({ data, clients }) {
 
 function openClientRecord({ data, client }) {
   const orders = data.orders.filter((order) => order.client === client.name);
-  const budgets = data.budgets.filter((budget) => budget.client === client.name);
   const businessName = data.business.name || "Nexo Management";
 
   const html = `<!doctype html><html><head><meta charset="UTF-8"><title>Registro ${client.name}</title><style>*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:Arial,Helvetica,sans-serif}.page{width:794px;min-height:1123px;margin:24px auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.12);border:1px solid #e5e7eb}.topbar{height:10px;background:linear-gradient(90deg,#111827,#4b5563)}.content{padding:56px 68px 36px;min-height:1113px;display:flex;flex-direction:column}.header{display:flex;justify-content:space-between;padding-bottom:30px;border-bottom:1px solid #e5e7eb}.logo{width:62px;height:58px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:#111827;color:white;font-size:22px;font-weight:900}.brand{display:flex;gap:18px;align-items:center}h1{margin:0;font-size:28px}.muted{color:#6b7280;font-size:12px}.label{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#374151;font-weight:900}.box{border:1px solid #d1d5db;border-radius:16px;padding:20px;background:#f9fafb;margin-top:24px}table{width:100%;border-collapse:separate;border-spacing:0;margin-top:18px;border-radius:16px;overflow:hidden;border:1px solid #d1d5db}th{background:#111827;color:white;font-size:12px;text-transform:uppercase;letter-spacing:1px;padding:14px;text-align:left}td{padding:14px;border-bottom:1px solid #e5e7eb;font-size:13px}tr:last-child td{border-bottom:none}.footer{margin-top:auto;padding-top:22px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;color:#6b7280;font-size:11px}.printBtn{position:fixed;right:24px;bottom:24px;border:0;border-radius:14px;padding:14px 18px;background:#111827;color:white;font-weight:800;cursor:pointer}@media print{body{background:white}.page{margin:0;width:100%;box-shadow:none;border:none}.printBtn{display:none}}</style></head><body><main class="page"><div class="topbar"></div><div class="content"><section class="header"><div class="brand"><div class="logo">NM</div><div><h1>${businessName}</h1><div class="muted">Registro completo de cliente</div></div></div><div style="text-align:right"><div class="label">Cliente</div><h1>${client.name}</h1><div class="muted">Generado: ${new Date().toLocaleDateString("es-AR")}</div></div></section><section class="box"><div class="label">Datos del cliente</div><p><strong>Nombre:</strong> ${client.name}</p><p><strong>Teléfono:</strong> ${client.phone || "—"}</p><p><strong>Email:</strong> ${client.email || "—"}</p><p><strong>Notas:</strong> ${client.notes || "—"}</p></section><section class="box"><div class="label">Órdenes / visitas</div><table><thead><tr><th>Orden</th><th>Servicio</th><th>Estado</th><th>Pago</th><th>Total</th></tr></thead><tbody>${orders.length ? orders.map((order) => `<tr><td>${order.id}</td><td>${order.service}</td><td>${order.status}</td><td>${order.payment}</td><td>${currency(order.total)}</td></tr>`).join("") : `<tr><td colspan="5">Sin órdenes registradas.</td></tr>`}</tbody></table></section><footer class="footer"><span>Generado con Nexo Management</span><span>${client.id}</span></footer></div></main><button class="printBtn" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
@@ -1499,8 +1489,12 @@ function Settings({ data, setData, account, exportData, resetData }) {
   const [serviceForm, setServiceForm] = useState({ name: "", suggestedPrice: "" });
 
   useEffect(() => {
-    setProfile(data.profile);
-    setBusiness(data.business);
+    const syncSettings = window.setTimeout(() => {
+      setProfile(data.profile);
+      setBusiness(data.business);
+    }, 0);
+
+    return () => window.clearTimeout(syncSettings);
   }, [data.profile, data.business]);
 
   function save(e) {
@@ -1664,8 +1658,8 @@ function AppShell({ account, initialData, onLogout }) {
   const [search, setSearch] = useState("");
   const [data, setData] = useState(initialData);
   useEffect(() => { writeJSON(dataKey(account.email), data); }, [data, account.email]);
-  function exportData() { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `nexo-management-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }
-  async function resetData() { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory({ ...emptyData, profile: data.profile, business: data.business }, "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }
+  const exportData = useCallback(() => { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `nexo-management-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }, [data]);
+  const resetData = useCallback(async () => { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory({ ...emptyData, profile: data.profile, business: data.business }, "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }, [data.business, data.profile]);
   const content = useMemo(() => {
     if (active === "dashboard") return <Dashboard data={data} setData={setData} />;
     if (active === "clients") return <Clients data={data} setData={setData} search={search} />;
@@ -1674,7 +1668,7 @@ function AppShell({ account, initialData, onLogout }) {
     if (active === "monthly") return <Monthly data={data} />;
     if (active === "history") return <History data={data} search={search} />;
     return <Settings data={data} setData={setData} account={account} exportData={exportData} resetData={resetData} />;
-  }, [active, data, search, account]);
+  }, [active, data, search, account, exportData, resetData]);
   return <main className="min-h-screen bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 lg:pl-72"><Topbar search={search} setSearch={setSearch} account={account} data={data} setActive={setActive} onLogout={onLogout} /><div className="px-5 py-8 lg:px-8"><div className="mb-6 flex gap-2 overflow-x-auto lg:hidden">{navItems.map((item) => <button key={item.id} onClick={() => setActive(item.id)} className={`shrink-0 rounded-full border px-4 py-2 text-sm ${active === item.id ? "border-white/20 bg-white/[0.1] text-white" : "border-white/10 bg-white/[0.035] text-zinc-500"}`}>{item.label}</button>)}</div>{content}</div></div></main>;
 }
 
