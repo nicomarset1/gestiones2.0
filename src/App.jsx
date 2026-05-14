@@ -848,22 +848,38 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
         </div>
       </div>
       {menuOpen && (
-        <div className="mt-3 rounded-3xl border border-white/10 bg-zinc-950/95 p-3 shadow-2xl shadow-black/60 lg:hidden">
-          <div className="flex flex-wrap gap-2">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActive(item.id);
-                  setMenuOpen(false);
-                }}
-                className={`flex shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-sm transition ${active === item.id ? "border-white/20 bg-white/[0.1] text-white" : "border-white/10 bg-white/[0.035] text-zinc-500 hover:border-white/20 hover:text-zinc-200"}`}
-              >
-                <span className="font-mono text-sm">{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden" onMouseDown={() => setMenuOpen(false)}>
+          <aside
+            className="h-full w-[min(20rem,86vw)] border-r border-white/10 bg-[#090909]/98 p-5 shadow-2xl shadow-black/70"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="mb-7 flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-lg text-white">NM</div>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-white">{data.business.name || "Nexo Management"}</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">Menú</p>
+                </div>
+              </div>
+              <button onClick={() => setMenuOpen(false)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-xl leading-none text-zinc-300">×</button>
+            </div>
+
+            <nav className="space-y-2">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActive(item.id);
+                    setMenuOpen(false);
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.08] text-white" : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"}`}
+                >
+                  <span className="font-mono text-sm">{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
+          </aside>
         </div>
       )}
     </header>
