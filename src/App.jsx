@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const APP_KEY = "nexo-management-v1";
 const ACCOUNTS_KEY = `${APP_KEY}:accounts`;
@@ -37,6 +37,8 @@ const navItems = [
 
 const ORDER_STATUS = ["Pendiente", "Terminado"];
 const PAYMENT_STATUS = ["Pendiente", "Pago parcial", "Pagado"];
+const BUDGET_STATUS = ["Pendiente", "Convertido", "Rechazado"];
+const ORDER_OVERDUE_DAYS = 7;
 
 function readJSON(key, fallback) {
   try {
@@ -67,6 +69,14 @@ function onlyDigits(value) {
   return String(value || "").replace(/[^0-9]/g, "");
 }
 
+function normalizeText(value) {
+  return String(value || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function toTitleCase(value) {
   return String(value || "")
     .toLowerCase()
@@ -83,6 +93,10 @@ function formatFullName(profile) {
 function isValidPhone(phone) {
   const digits = onlyDigits(phone);
   return digits.length >= 8 && digits.length <= 15;
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
 }
 
 function formatARSInput(value) {
@@ -112,6 +126,12 @@ function dateLabel(value) {
   });
 }
 
+function isValidISODate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return false;
+  const date = new Date(`${value}T12:00:00`);
+  return !Number.isNaN(date.getTime()) && value === date.toISOString().slice(0, 10);
+}
+
 function dateTimeLabel(value) {
   if (!value) return "—";
   return new Date(value).toLocaleString("es-AR");
@@ -135,14 +155,43 @@ function statusTone(status) {
 }
 
 function getPaidAmount(order) {
-  const total = Number(order?.total || 0);
+  const total = Math.max(Number(order?.total || 0), 0);
   if (order?.payment === "Pagado") return total;
-  if (order?.payment === "Pago parcial") return Math.min(Number(order?.paidAmount || 0), total);
+  if (order?.payment === "Pago parcial") return Math.min(Math.max(Number(order?.paidAmount || 0), 0), total);
   return 0;
 }
 
 function getPendingAmount(order) {
   return Math.max(Number(order?.total || 0) - getPaidAmount(order), 0);
+}
+
+function isOrderOverdue(order) {
+  if (order?.status !== "Pendiente" || !isValidISODate(order.date)) return false;
+  const created = new Date(`${order.date}T12:00:00`);
+  const limit = new Date();
+  limit.setHours(12, 0, 0, 0);
+  limit.setDate(limit.getDate() - ORDER_OVERDUE_DAYS);
+  return created < limit;
+}
+
+function normalizeOrderPayment(payment, total, paidAmount) {
+  if (payment === "Pagado") return { payment, paidAmount: total };
+  if (payment === "Pago parcial") return { payment, paidAmount: Math.min(paidAmount, total) };
+  return { payment: "Pendiente", paidAmount: 0 };
+}
+
+function findDuplicateClient(clients, form, editingId = null) {
+  const name = normalizeText(form.name);
+  const phone = onlyDigits(form.phone);
+  const email = normalizeEmail(form.email);
+
+  return clients.find((client) => {
+    if (client.id === editingId) return false;
+    if (normalizeText(client.name) === name) return true;
+    if (phone && onlyDigits(client.phone) === phone) return true;
+    if (email && normalizeEmail(client.email) === email) return true;
+    return false;
+  });
 }
 
 function notify(message) {
@@ -379,7 +428,7 @@ function openDocumentWindow({
   const businessName = data.business.name || "Nexo Management";
   const client = getClient(data, clientName);
   const total = Number(amount || 0);
-  const paid = Number(arguments[0]?.paidAmount || 0);
+  const paid = Number(paidAmount || 0);
   const remaining = Math.max(total - paid, 0);
   const responsible = formatFullName(data.profile) || "—";
   const generatedDate = new Date().toLocaleDateString("es-AR");
@@ -503,7 +552,6 @@ function openClientsListDocument({ data, clients }) {
 
 function openClientRecord({ data, client }) {
   const orders = data.orders.filter((order) => order.client === client.name);
-  const budgets = data.budgets.filter((budget) => budget.client === client.name);
   const businessName = data.business.name || "Nexo Management";
 
   const html = `<!doctype html><html><head><meta charset="UTF-8"><title>Registro ${client.name}</title><style>*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:Arial,Helvetica,sans-serif}.page{width:794px;min-height:1123px;margin:24px auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.12);border:1px solid #e5e7eb}.topbar{height:10px;background:linear-gradient(90deg,#111827,#4b5563)}.content{padding:56px 68px 36px;min-height:1113px;display:flex;flex-direction:column}.header{display:flex;justify-content:space-between;padding-bottom:30px;border-bottom:1px solid #e5e7eb}.logo{width:62px;height:58px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:#111827;color:white;font-size:22px;font-weight:900}.brand{display:flex;gap:18px;align-items:center}h1{margin:0;font-size:28px}.muted{color:#6b7280;font-size:12px}.label{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#374151;font-weight:900}.box{border:1px solid #d1d5db;border-radius:16px;padding:20px;background:#f9fafb;margin-top:24px}table{width:100%;border-collapse:separate;border-spacing:0;margin-top:18px;border-radius:16px;overflow:hidden;border:1px solid #d1d5db}th{background:#111827;color:white;font-size:12px;text-transform:uppercase;letter-spacing:1px;padding:14px;text-align:left}td{padding:14px;border-bottom:1px solid #e5e7eb;font-size:13px}tr:last-child td{border-bottom:none}.footer{margin-top:auto;padding-top:22px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;color:#6b7280;font-size:11px}.printBtn{position:fixed;right:24px;bottom:24px;border:0;border-radius:14px;padding:14px 18px;background:#111827;color:white;font-weight:800;cursor:pointer}@media print{body{background:white}.page{margin:0;width:100%;box-shadow:none;border:none}.printBtn{display:none}}</style></head><body><main class="page"><div class="topbar"></div><div class="content"><section class="header"><div class="brand"><div class="logo">NM</div><div><h1>${businessName}</h1><div class="muted">Registro completo de cliente</div></div></div><div style="text-align:right"><div class="label">Cliente</div><h1>${client.name}</h1><div class="muted">Generado: ${new Date().toLocaleDateString("es-AR")}</div></div></section><section class="box"><div class="label">Datos del cliente</div><p><strong>Nombre:</strong> ${client.name}</p><p><strong>Teléfono:</strong> ${client.phone || "—"}</p><p><strong>Email:</strong> ${client.email || "—"}</p><p><strong>Notas:</strong> ${client.notes || "—"}</p></section><section class="box"><div class="label">Órdenes / visitas</div><table><thead><tr><th>Orden</th><th>Servicio</th><th>Estado</th><th>Pago</th><th>Total</th></tr></thead><tbody>${orders.length ? orders.map((order) => `<tr><td>${order.id}</td><td>${order.service}</td><td>${order.status}</td><td>${order.payment}</td><td>${currency(order.total)}</td></tr>`).join("") : `<tr><td colspan="5">Sin órdenes registradas.</td></tr>`}</tbody></table></section><footer class="footer"><span>Generado con Nexo Management</span><span>${client.id}</span></footer></div></main><button class="printBtn" onclick="window.print()">Imprimir / Guardar PDF</button></body></html>`;
@@ -520,7 +568,7 @@ function openClientRecord({ data, client }) {
 function openMonthlyReport({ data, month }) {
   const monthOrders = data.orders.filter((order) => monthKey(order.date) === month.key);
   const total = monthOrders.reduce((sum, order) => sum + order.total, 0);
-  const paid = monthOrders.filter((order) => order.payment === "Pagado").reduce((sum, order) => sum + order.total, 0);
+  const paid = monthOrders.reduce((sum, order) => sum + getPaidAmount(order), 0);
   const pending = total - paid;
   const businessName = data.business.name || "Nexo Management";
 
@@ -799,6 +847,8 @@ function DashboardDetailModal({ type, data, orders, onClose }) {
   const monthOrders = orders.filter((order) => monthKey(order.date) === currentMonth);
   const pendingOrders = monthOrders.filter((order) => order.status === "Pendiente");
   const pendingBalances = monthOrders.filter((order) => getPendingAmount(order) > 0);
+  const overdueOrders = orders.filter(isOrderOverdue);
+  const openBalances = orders.filter((order) => getPendingAmount(order) > 0);
 
   const config = {
     clients: {
@@ -820,6 +870,16 @@ function DashboardDetailModal({ type, data, orders, onClose }) {
       title: "Saldos pendientes del mes",
       text: "Órdenes con dinero pendiente de cobro durante el mes actual.",
       rows: pendingBalances,
+    },
+    overdueOrders: {
+      title: "Órdenes atrasadas",
+      text: `Órdenes pendientes con más de ${ORDER_OVERDUE_DAYS} días abiertas.`,
+      rows: overdueOrders,
+    },
+    openBalances: {
+      title: "Cobros pendientes",
+      text: "Órdenes abiertas o terminadas que todavía tienen saldo por cobrar.",
+      rows: openBalances,
     },
   }[type];
 
@@ -965,6 +1025,10 @@ function Dashboard({ data, setData }) {
   const pendingRevenue = monthOrders.reduce((sum, order) => sum + getPendingAmount(order), 0);
   const paidPercent = totalRevenue > 0 ? Math.round((paidRevenue / totalRevenue) * 100) : 0;
   const pendingOrders = monthOrders.filter((order) => order.status === "Pendiente").length;
+  const overdueOrders = data.orders.filter(isOrderOverdue);
+  const openBalances = data.orders.filter((order) => getPendingAmount(order) > 0);
+  const totalOpenBalance = openBalances.reduce((sum, order) => sum + getPendingAmount(order), 0);
+  const priorityOrders = [...overdueOrders, ...openBalances.filter((order) => !overdueOrders.some((overdue) => overdue.id === order.id))].slice(0, 5);
   const bars = buildMonthlyBars(data.orders);
 
   return (
@@ -974,13 +1038,41 @@ function Dashboard({ data, setData }) {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <button onClick={() => setDetail("clients")} className="h-full w-full text-left"><StatCard label="Clientes" value={data.clients.length} meta="Base comercial" icon="CL" /></button>
         <button onClick={() => setDetail("pendingOrders")} className="h-full w-full text-left"><StatCard label="Órdenes pendientes" value={pendingOrders} meta="Trabajos pendientes del mes" icon="OR" /></button>
-        <button onClick={() => setDetail("income")} className="h-full w-full text-left"><StatCard label="Ingresos registrados" value={currency(totalRevenue)} meta={`Total cargado en ${monthLabel}`} icon="$" /></button>
-        <button onClick={() => setDetail("pendingBalance")} className="h-full w-full text-left"><StatCard label="Saldo pendiente" value={currency(pendingRevenue)} meta="Pendiente de cobro del mes" icon="PG" /></button>
+        <button onClick={() => setDetail("overdueOrders")} className="h-full w-full text-left"><StatCard label="Atrasadas" value={overdueOrders.length} meta={`Pendientes +${ORDER_OVERDUE_DAYS} días`} icon="AT" /></button>
+        <button onClick={() => setDetail("openBalances")} className="h-full w-full text-left"><StatCard label="Por cobrar" value={currency(totalOpenBalance)} meta="Saldo pendiente total" icon="PG" /></button>
       </div>
       <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
         <Panel className="p-6"><div className="mb-8 flex items-center justify-between"><div><h3 className="text-xl font-semibold text-white">Ingresos mensuales</h3><p className="mt-1 text-sm text-zinc-500">Evolución visual basada en órdenes reales.</p></div><Badge>{monthLabel}</Badge></div><div className="flex h-72 items-end gap-3">{bars.map((bar) => <div key={bar.key} className="flex flex-1 flex-col items-center gap-3"><button onClick={() => openMonthlyReport({ data, month: bar })} className="flex h-56 w-full items-end rounded-2xl bg-white/[0.035] p-1 transition hover:bg-white/[0.06]"><div className="w-full rounded-xl bg-gradient-to-t from-zinc-500 to-zinc-100" style={{ height: `${Math.max(bar.percent, 4)}%` }} /></button><span className="text-xs text-zinc-600">{bar.label}</span></div>)}</div></Panel>
         <Panel className="p-6"><div className="flex items-center justify-between gap-4"><div><h3 className="text-xl font-semibold text-white">Estado de cobro</h3><p className="mt-1 text-sm text-zinc-500">Pagado real vs pendiente real.</p></div><Badge>{monthLabel}</Badge></div><div className="mt-8 flex justify-center"><div className="relative flex h-44 w-44 items-center justify-center rounded-full" style={{ background: `conic-gradient(rgb(228 228 231) ${paidPercent}%, rgb(63 63 70) ${paidPercent}% 100%)` }}><div className="flex h-28 w-28 items-center justify-center rounded-full bg-zinc-950 text-center"><div><p className="text-3xl font-semibold text-white">{paidPercent}%</p><p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Cobrado</p></div></div></div></div><div className="mt-8 space-y-3"><PaymentLine label="Pagado" value={paidRevenue} /><PaymentLine label="Pendiente" value={pendingRevenue} /></div></Panel>
       </div>
+      <Panel className="overflow-hidden">
+        <div className="border-b border-white/10 p-5">
+          <h3 className="text-xl font-semibold text-white">Acciones prioritarias</h3>
+          <p className="mt-1 text-sm text-zinc-500">Órdenes atrasadas o con saldo pendiente para resolver primero.</p>
+        </div>
+        {priorityOrders.length === 0 ? (
+          <EmptyState title="Sin pendientes críticos" text="No hay órdenes atrasadas ni saldos abiertos para priorizar." />
+        ) : (
+          <div className="divide-y divide-white/10">
+            {priorityOrders.map((order) => (
+              <div key={order.id} className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone={isOrderOverdue(order) ? "amber" : "neutral"}>{isOrderOverdue(order) ? "Atrasada" : "Cobro pendiente"}</Badge>
+                    <span className="font-mono text-sm text-zinc-400">{order.id}</span>
+                    <span className="font-medium text-white">{order.client}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-zinc-500">{order.service} · {dateLabel(order.date)} · resta {currency(getPendingAmount(order))}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {order.status === "Pendiente" && <SecondaryButton onClick={() => finishOrder(data, setData, order.id)}>Terminar</SecondaryButton>}
+                  {order.payment !== "Pagado" && <SecondaryButton onClick={() => markPaid(data, setData, order.id)}>Marcar pagada</SecondaryButton>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Panel>
       <OrdersTable orders={monthOrders.slice(0, 5)} compact data={data} onFinish={(id) => finishOrder(data, setData, id)} onPay={(id) => markPaid(data, setData, id)} />
     </div>
   );
@@ -1011,7 +1103,7 @@ function ClientListModal({ data, clients, onClose, onEdit, onDelete, onView }) {
 
   const filteredClients = clients
     .filter((client) =>
-      [client.name, client.phone, client.email, client.notes]
+      [client.id, client.name, client.phone, client.email, client.notes]
         .join(" ")
         .toLowerCase()
         .includes(query.toLowerCase())
@@ -1113,13 +1205,13 @@ function Clients({ data, setData, search }) {
   const perPage = 8;
   const filtered = data.clients
     .filter((client) =>
-      [client.name, client.phone, client.email, client.notes]
+      [client.id, client.name, client.phone, client.email, client.notes]
         .join(" ")
         .toLowerCase()
         .includes(search.toLowerCase())
     )
     .filter((client) =>
-      [client.name, client.phone, client.email, client.notes]
+      [client.id, client.name, client.phone, client.email, client.notes]
         .join(" ")
         .toLowerCase()
         .includes(internalSearch.toLowerCase())
@@ -1144,24 +1236,57 @@ function Clients({ data, setData, search }) {
   }
   function submit(e) {
     e.preventDefault();
-    if (!form.name.trim()) return notify("Completá el nombre del cliente.");
-    if (form.phone && !isValidPhone(form.phone)) return notify("El teléfono debe tener entre 8 y 15 números.");
+    const nextClient = {
+      name: form.name.trim().replace(/\s+/g, " "),
+      phone: onlyDigits(form.phone),
+      email: normalizeEmail(form.email),
+      notes: form.notes.trim(),
+    };
+    if (!nextClient.name) return notify("Completá el nombre del cliente.");
+    if (nextClient.phone && !isValidPhone(nextClient.phone)) return notify("El teléfono debe tener entre 8 y 15 números.");
+    if (nextClient.email && !isValidEmail(nextClient.email)) return notify("Ingresá un email válido o dejalo vacío.");
+    const duplicate = findDuplicateClient(data.clients, nextClient, editing);
+    if (duplicate) return notify(`Ya existe un cliente similar: ${duplicate.name}. Revisá nombre, teléfono o email.`);
     if (editing) {
-      setData((prev) => addHistory({ ...prev, clients: prev.clients.map((c) => c.id === editing ? { ...c, ...form, phone: onlyDigits(form.phone) } : c) }, "Cliente", "Cliente actualizado", form.name));
+      setData((prev) =>
+        addHistory(
+          { ...prev, clients: prev.clients.map((c) => (c.id === editing ? { ...c, ...nextClient, lastContact: todayISO() } : c)) },
+          "Cliente",
+          "Cliente actualizado",
+          `${nextClient.name} (${nextClient.phone || nextClient.email || "sin contacto"})`
+        )
+      );
       notify("Cliente actualizado correctamente.");
       reset();
       return;
     }
-    const client = { id: createId("CLI"), name: form.name.trim(), phone: onlyDigits(form.phone), email: form.email, notes: form.notes, lastContact: todayISO() };
-    setData((prev) => addHistory({ ...prev, clients: [client, ...prev.clients] }, "Cliente", "Cliente creado", client.name));
+    const client = { id: createId("CLI"), ...nextClient, lastContact: todayISO() };
+    setData((prev) =>
+      addHistory(
+        { ...prev, clients: [client, ...prev.clients] },
+        "Cliente",
+        "Cliente creado",
+        `${client.name} (${client.phone || client.email || "sin contacto"})`
+      )
+    );
     notify("Cliente creado correctamente.");
     reset();
     setPage(1);
   }
   async function remove(id) {
-    if (!(await confirmAction("¿Seguro que querés eliminar este cliente?"))) return;
     const client = data.clients.find((c) => c.id === id);
-    setData((prev) => addHistory({ ...prev, clients: prev.clients.filter((c) => c.id !== id) }, "Cliente", "Cliente eliminado", client?.name || id));
+    const relatedOrders = data.orders.filter((order) => order.client === client?.name).length;
+    const relatedBudgets = data.budgets.filter((budget) => budget.client === client?.name).length;
+    const detail = relatedOrders || relatedBudgets ? ` Tiene ${relatedOrders} órdenes y ${relatedBudgets} presupuestos asociados que no se eliminan.` : "";
+    if (!(await confirmAction(`¿Eliminar a ${client?.name || "este cliente"}?${detail}`))) return;
+    setData((prev) =>
+      addHistory(
+        { ...prev, clients: prev.clients.filter((c) => c.id !== id) },
+        "Cliente",
+        "Cliente eliminado",
+        `${client?.name || id}${detail}`
+      )
+    );
     notify("Cliente eliminado correctamente.");
   }
 
@@ -1205,17 +1330,28 @@ function Budgets({ data, setData, search }) {
 
   function submit(e) {
     e.preventDefault();
-    if (!form.client || !form.service || !form.amount) return notify("Completá cliente, servicio e importe.");
+    const amount = parseARS(form.amount);
+    const clientName = form.client.trim();
+    const serviceName = form.service.trim();
+    if (!clientName || !serviceName || !form.amount) return notify("Completá cliente, servicio e importe.");
     if (!getClient(data, form.client)) return notify("Elegí un cliente existente o cargalo primero.");
+    if (amount <= 0) return notify("El importe del presupuesto debe ser mayor a cero.");
 
     if (editing) {
-      setData((prev) => addHistory({ ...prev, budgets: prev.budgets.map((b) => b.id === editing ? { ...b, ...form, amount: parseARS(form.amount) } : b) }, "Presupuesto", "Presupuesto actualizado", editing));
+      setData((prev) =>
+        addHistory(
+          { ...prev, budgets: prev.budgets.map((b) => (b.id === editing ? { ...b, client: clientName, service: serviceName, amount, observations: form.observations.trim() } : b)) },
+          "Presupuesto",
+          "Presupuesto actualizado",
+          `${editing} · ${clientName} · ${currency(amount)}`
+        )
+      );
       notify("Presupuesto actualizado correctamente.");
       reset();
       return;
     }
 
-    const budget = { id: createId("PRE"), client: form.client, service: form.service, amount: parseARS(form.amount), observations: form.observations, date: todayISO() };
+    const budget = { id: createId("PRE"), client: clientName, service: serviceName, amount, observations: form.observations.trim(), status: "Pendiente", date: todayISO() };
     setData((prev) => addHistory({ ...prev, budgets: [budget, ...prev.budgets] }, "Presupuesto", "Presupuesto creado", `${budget.id} · ${budget.client}`));
     notify("Presupuesto creado correctamente.");
     reset();
@@ -1223,9 +1359,46 @@ function Budgets({ data, setData, search }) {
   }
 
   async function remove(id) {
-    if (!(await confirmAction("¿Seguro que querés eliminar este presupuesto?"))) return;
+    const budget = data.budgets.find((item) => item.id === id);
+    if (!(await confirmAction(`¿Eliminar el presupuesto ${id} de ${budget?.client || "este cliente"}?`))) return;
     setData((prev) => addHistory({ ...prev, budgets: prev.budgets.filter((b) => b.id !== id) }, "Presupuesto", "Presupuesto eliminado", id));
     notify("Presupuesto eliminado correctamente.");
+  }
+
+  async function convertToOrder(budget) {
+    if ((budget.status || "Pendiente") === "Convertido") {
+      return notify("Este presupuesto ya fue convertido en orden.");
+    }
+    if (!getClient(data, budget.client)) return notify("El cliente del presupuesto ya no existe. Revisá el presupuesto antes de convertirlo.");
+    if (Number(budget.amount || 0) <= 0) return notify("El presupuesto no tiene un importe válido para convertir.");
+    if (!(await confirmAction(`Convertir ${budget.id} en una orden pendiente por ${currency(budget.amount)}?`))) return;
+
+    const order = {
+      id: createId("ORD"),
+      client: budget.client,
+      service: budget.service,
+      total: Number(budget.amount),
+      paidAmount: 0,
+      observations: budget.observations || "",
+      status: "Pendiente",
+      payment: "Pendiente",
+      date: todayISO(),
+      sourceBudgetId: budget.id,
+    };
+
+    setData((prev) =>
+      addHistory(
+        {
+          ...prev,
+          budgets: prev.budgets.map((item) => (item.id === budget.id ? { ...item, status: "Convertido", convertedOrderId: order.id } : item)),
+          orders: [order, ...prev.orders],
+        },
+        "Orden",
+        "Presupuesto convertido en orden",
+        `${budget.id} → ${order.id} · ${budget.client} · ${currency(order.total)}`
+      )
+    );
+    notify("Presupuesto convertido en orden.");
   }
 
   return (
@@ -1288,7 +1461,7 @@ function Budgets({ data, setData, search }) {
           <div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Presupuestos registrados</h3><p className="mt-1 text-sm text-zinc-500">Lista compacta de presupuestos generados.</p><div className="mt-5 grid gap-3 md:grid-cols-[1fr_220px]"><input value={internalSearch} onChange={(e) => { setInternalSearch(e.target.value); setPage(1); }} placeholder="Buscar presupuesto, cliente o servicio..." className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-700 focus:border-white/25" /><select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none"><option className="bg-zinc-950" value="recent">Más reciente</option><option className="bg-zinc-950" value="oldest">Más antiguo</option><option className="bg-zinc-950" value="az">Alfabético</option></select></div></div>
           {filtered.length === 0 ? <EmptyState title="Sin presupuestos" text="Cuando crees presupuestos, van a aparecer en esta lista." /> : (
             <>
-              <div className="overflow-x-auto"><table className="w-full min-w-[800px] text-left text-sm"><thead className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-zinc-600"><tr><th className="px-4 py-2.5">Presupuesto</th><th className="px-4 py-2.5">Cliente</th><th className="px-4 py-2.5">Servicio</th><th className="px-4 py-2.5">Importe</th><th className="px-4 py-2.5">Acciones</th></tr></thead><tbody className="divide-y divide-white/10">{visible.map((b) => <tr key={b.id} className="transition hover:bg-white/[0.035]"><td className="px-4 py-2.5 font-mono text-zinc-300">{b.id}</td><td className="px-4 py-2.5 font-medium text-white">{b.client}</td><td className="px-4 py-2.5 text-zinc-500">{b.service}</td><td className="px-4 py-2.5 font-medium text-zinc-200">{currency(b.amount)}</td><td className="px-4 py-2.5"><div className="flex flex-wrap gap-2"><SecondaryButton onClick={() => { setEditing(b.id); setForm({ client: b.client, service: b.service, amount: formatARSInput(b.amount), observations: b.observations || "" }); }}>Editar</SecondaryButton><SecondaryButton onClick={() => openDocumentWindow({ type: "Presupuesto", id: b.id, data, clientName: b.client, service: b.service, observations: b.observations, amount: b.amount, paymentStatus: "Pendiente" })}>Abrir presupuesto</SecondaryButton><SecondaryButton onClick={() => remove(b.id)}>Eliminar</SecondaryButton></div></td></tr>)}</tbody></table></div>
+              <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-zinc-600"><tr><th className="px-4 py-2.5">Presupuesto</th><th className="px-4 py-2.5">Cliente</th><th className="px-4 py-2.5">Servicio</th><th className="px-4 py-2.5">Estado</th><th className="px-4 py-2.5">Importe</th><th className="px-4 py-2.5">Acciones</th></tr></thead><tbody className="divide-y divide-white/10">{visible.map((b) => <tr key={b.id} className="transition hover:bg-white/[0.035]"><td className="px-4 py-2.5 font-mono text-zinc-300">{b.id}<p className="mt-1 text-xs text-zinc-600">{dateLabel(b.date)}</p></td><td className="px-4 py-2.5 font-medium text-white">{b.client}</td><td className="px-4 py-2.5 text-zinc-500">{b.service}</td><td className="px-4 py-2.5"><Badge tone={statusTone(b.status || "Pendiente")}>{BUDGET_STATUS.includes(b.status) ? b.status : "Pendiente"}</Badge></td><td className="px-4 py-2.5 font-medium text-zinc-200">{currency(b.amount)}</td><td className="px-4 py-2.5"><div className="flex flex-wrap gap-2"><SecondaryButton onClick={() => { setEditing(b.id); setForm({ client: b.client, service: b.service, amount: formatARSInput(b.amount), observations: b.observations || "" }); }}>Editar</SecondaryButton><SecondaryButton onClick={() => convertToOrder(b)}>Convertir a orden</SecondaryButton><SecondaryButton onClick={() => openDocumentWindow({ type: "Presupuesto", id: b.id, data, clientName: b.client, service: b.service, observations: b.observations, amount: b.amount, paymentStatus: "Pendiente" })}>Abrir presupuesto</SecondaryButton><SecondaryButton onClick={() => remove(b.id)}>Eliminar</SecondaryButton></div></td></tr>)}</tbody></table></div>
               <div className="flex items-center justify-between border-t border-white/10 px-5 py-3 text-sm text-zinc-500"><span>Página {page} de {totalPages}</span><div className="flex gap-2"><SecondaryButton onClick={() => setPage(Math.max(page - 1, 1))}>Anterior</SecondaryButton><SecondaryButton onClick={() => setPage(Math.min(page + 1, totalPages))}>Siguiente</SecondaryButton></div></div>
             </>
           )}
@@ -1299,12 +1472,28 @@ function Budgets({ data, setData, search }) {
 }
 
 function finishOrder(data, setData, id) {
-  setData((prev) => addHistory({ ...prev, orders: prev.orders.map((o) => o.id === id ? { ...o, status: "Terminado" } : o) }, "Orden", "Orden terminada", id));
+  const order = data.orders.find((item) => item.id === id);
+  setData((prev) =>
+    addHistory(
+      { ...prev, orders: prev.orders.map((o) => (o.id === id ? { ...o, status: "Terminado" } : o)) },
+      "Orden",
+      "Orden terminada",
+      `${id} · ${order?.client || "sin cliente"}`
+    )
+  );
   notify("Orden marcada como terminada.");
 }
 
 function markPaid(data, setData, id) {
-  setData((prev) => addHistory({ ...prev, orders: prev.orders.map((o) => o.id === id ? { ...o, payment: "Pagado", paidAmount: Number(o.total || 0) } : o) }, "Orden", "Pago actualizado", id));
+  const order = data.orders.find((item) => item.id === id);
+  setData((prev) =>
+    addHistory(
+      { ...prev, orders: prev.orders.map((o) => (o.id === id ? { ...o, payment: "Pagado", paidAmount: Number(o.total || 0) } : o)) },
+      "Orden",
+      "Pago actualizado",
+      `${id} · ${order?.client || "sin cliente"} · ${currency(order?.total || 0)}`
+    )
+  );
   notify("Orden marcada como pagada.");
 }
 
@@ -1338,34 +1527,49 @@ function Orders({ data, setData, search }) {
 
   function submit(e) {
     e.preventDefault();
-    if (!form.client || !form.service || !form.total) return notify("Completá cliente, servicio y total.");
-    if (!getClient(data, form.client)) return notify("Elegí un cliente existente o cargalo primero.");
-    if (form.payment === "Pago parcial" && parseARS(form.paidAmount) <= 0) return notify("Indicá cuánto pagó el cliente.");
+    const total = parseARS(form.total);
+    const partialPaid = parseARS(form.paidAmount);
+    const clientName = form.client.trim();
+    const serviceName = form.service.trim();
+    if (!clientName || !serviceName || !form.total) return notify("Completá cliente, servicio y total.");
+    if (!getClient(data, clientName)) return notify("Elegí un cliente existente o cargalo primero.");
+    if (total <= 0) return notify("El total de la orden debe ser mayor a cero.");
+    if (form.payment === "Pago parcial" && partialPaid <= 0) return notify("Indicá cuánto pagó el cliente.");
+    if (form.payment === "Pago parcial" && partialPaid >= total) return notify("Para pagos iguales o mayores al total, usá el estado Pagado.");
+    const paymentData = normalizeOrderPayment(form.payment, total, partialPaid);
 
     if (editing) {
       setData((prev) => {
-        let next = { ...prev, orders: prev.orders.map((o) => o.id === editing ? { ...o, ...form, total: parseARS(form.total), paidAmount: form.payment === "Pagado" ? parseARS(form.total) : form.payment === "Pago parcial" ? parseARS(form.paidAmount) : 0 } : o) };
-        next = saveFrequentServiceIfNeeded(next, form.service, parseARS(form.total));
-        return addHistory(next, "Orden", "Orden actualizada", editing);
+        let next = {
+          ...prev,
+          orders: prev.orders.map((o) =>
+            o.id === editing
+              ? { ...o, client: clientName, service: serviceName, total, paidAmount: paymentData.paidAmount, observations: form.observations.trim(), status: form.status, payment: paymentData.payment }
+              : o
+          ),
+        };
+        next = saveFrequentServiceIfNeeded(next, serviceName, total);
+        return addHistory(next, "Orden", "Orden actualizada", `${editing} · ${clientName} · ${currency(total)}`);
       });
       notify("Orden actualizada correctamente.");
       reset();
       return;
     }
 
-    const order = { id: createId("ORD"), client: form.client, service: form.service, total: parseARS(form.total), paidAmount: form.payment === "Pagado" ? parseARS(form.total) : form.payment === "Pago parcial" ? parseARS(form.paidAmount) : 0, observations: form.observations, status: form.status, payment: form.payment, date: todayISO() };
+    const order = { id: createId("ORD"), client: clientName, service: serviceName, total, paidAmount: paymentData.paidAmount, observations: form.observations.trim(), status: form.status, payment: paymentData.payment, date: todayISO() };
     setData((prev) => {
       let next = { ...prev, orders: [order, ...prev.orders] };
-      next = saveFrequentServiceIfNeeded(next, form.service, order.total);
-      return addHistory(next, "Orden", "Orden creada", `${order.id} · ${order.client}`);
+      next = saveFrequentServiceIfNeeded(next, serviceName, order.total);
+      return addHistory(next, "Orden", "Orden creada", `${order.id} · ${order.client} · ${currency(order.total)}`);
     });
     notify("Orden creada correctamente.");
     reset();
   }
 
   async function remove(id) {
-    if (!(await confirmAction("¿Seguro que querés eliminar esta orden?"))) return;
-    setData((prev) => addHistory({ ...prev, orders: prev.orders.filter((o) => o.id !== id) }, "Orden", "Orden eliminada", id));
+    const order = data.orders.find((item) => item.id === id);
+    if (!(await confirmAction(`¿Eliminar la orden ${id} de ${order?.client || "este cliente"} por ${currency(order?.total || 0)}?`))) return;
+    setData((prev) => addHistory({ ...prev, orders: prev.orders.filter((o) => o.id !== id) }, "Orden", "Orden eliminada", `${id} · ${order?.client || "sin cliente"}`));
     notify("Orden eliminada correctamente.");
   }
 
@@ -1450,7 +1654,7 @@ function OrdersTable({ orders, compact = false, data, onEdit, onDelete, onFinish
       <div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Órdenes recientes</h3><p className="mt-1 text-sm text-zinc-500">Control operativo y estado de cobro.</p>{!compact && <div className="mt-5 grid gap-3 md:grid-cols-[1fr_220px]"><input value={internalSearch} onChange={(e) => { setInternalSearch(e.target.value); setPage(1); }} placeholder="Buscar orden, cliente, servicio o estado..." className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-700 focus:border-white/25" /><select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none"><option className="bg-zinc-950" value="recent">Más reciente</option><option className="bg-zinc-950" value="oldest">Más antiguo</option><option className="bg-zinc-950" value="az">Alfabético</option></select></div>}</div>
       {filteredOrders.length === 0 ? <EmptyState title="Sin órdenes cargadas" text="Cuando crees órdenes, van a aparecer en esta tabla." /> : (
         <>
-          <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-zinc-600"><tr><th className="px-4 py-2.5">Orden</th><th className="px-4 py-2.5">Cliente</th>{!compact && <th className="px-4 py-2.5">Servicio</th>}<th className="px-4 py-2.5">Estado</th><th className="px-4 py-2.5">Pago</th><th className="px-4 py-2.5">Total</th>{!compact && <th className="px-4 py-2.5">Acciones</th>}</tr></thead><tbody className="divide-y divide-white/10">{visible.map((order) => <tr key={order.id} className="transition hover:bg-white/[0.035]"><td className="px-4 py-2 font-mono text-zinc-300">{order.id}</td><td className="px-4 py-2 font-medium text-white">{order.client}</td>{!compact && <td className="px-4 py-2 text-zinc-500">{order.service}</td>}<td className="px-4 py-1.5"><div className="flex items-center gap-1.5"><Badge tone={statusTone(order.status)}>{order.status}</Badge>{order.status === "Pendiente" && <button onClick={() => onFinish?.(order.id)} title="Marcar como terminado" className="flex h-6 w-6 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10 text-[10px] text-emerald-300">✓</button>}</div></td><td className="px-4 py-1.5"><div className="flex items-center gap-1.5"><Badge tone={statusTone(order.payment)}>{order.payment}</Badge>{order.payment !== "Pagado" && <button onClick={() => onPay?.(order.id)} title="Marcar como pagado" className="flex h-6 w-6 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10 text-[10px] text-emerald-300">✓</button>}</div></td><td className="px-4 py-1.5 text-sm font-medium text-zinc-200">{currency(order.total)}</td>{!compact && <td className="px-4 py-1.5"><div className="flex flex-nowrap gap-1.5"><SecondaryButton onClick={() => onEdit?.(order)} className="px-2.5 py-1.5">Editar</SecondaryButton><SecondaryButton onClick={() => openDocumentWindow({ type: "Orden", id: order.id, data, clientName: order.client, service: order.service, observations: order.observations, amount: order.total, orderStatus: order.status, paymentStatus: order.payment, paidAmount: getPaidAmount(order) })} className="px-2.5 py-1.5">Abrir presupuesto</SecondaryButton><SecondaryButton onClick={() => onDelete?.(order.id)} className="px-2.5 py-1.5">Eliminar</SecondaryButton></div></td>}</tr>)}</tbody></table></div>
+          <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-left text-sm"><thead className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-zinc-600"><tr><th className="px-4 py-2.5">Orden</th><th className="px-4 py-2.5">Cliente</th>{!compact && <th className="px-4 py-2.5">Servicio</th>}<th className="px-4 py-2.5">Estado</th><th className="px-4 py-2.5">Pago</th><th className="px-4 py-2.5">Total</th><th className="px-4 py-2.5">Resta</th>{!compact && <th className="px-4 py-2.5">Acciones</th>}</tr></thead><tbody className="divide-y divide-white/10">{visible.map((order) => <tr key={order.id} className="transition hover:bg-white/[0.035]"><td className="px-4 py-2 font-mono text-zinc-300">{order.id}<p className="mt-1 text-xs text-zinc-600">{dateLabel(order.date)}</p></td><td className="px-4 py-2 font-medium text-white">{order.client}</td>{!compact && <td className="px-4 py-2 text-zinc-500">{order.service}</td>}<td className="px-4 py-1.5"><div className="flex items-center gap-1.5"><Badge tone={isOrderOverdue(order) ? "amber" : statusTone(order.status)}>{isOrderOverdue(order) ? "Atrasada" : order.status}</Badge>{order.status === "Pendiente" && <button onClick={() => onFinish?.(order.id)} title="Marcar como terminado" className="flex h-6 w-6 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10 text-[10px] text-emerald-300">✓</button>}</div></td><td className="px-4 py-1.5"><div className="flex items-center gap-1.5"><Badge tone={statusTone(order.payment)}>{order.payment}</Badge>{order.payment !== "Pagado" && <button onClick={() => onPay?.(order.id)} title="Marcar como pagado" className="flex h-6 w-6 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10 text-[10px] text-emerald-300">✓</button>}</div></td><td className="px-4 py-1.5 text-sm font-medium text-zinc-200">{currency(order.total)}</td><td className="px-4 py-1.5 text-sm font-medium text-zinc-200">{currency(getPendingAmount(order))}</td>{!compact && <td className="px-4 py-1.5"><div className="flex flex-nowrap gap-1.5"><SecondaryButton onClick={() => onEdit?.(order)} className="px-2.5 py-1.5">Editar</SecondaryButton><SecondaryButton onClick={() => openDocumentWindow({ type: "Orden", id: order.id, data, clientName: order.client, service: order.service, observations: order.observations, amount: order.total, orderStatus: order.status, paymentStatus: order.payment, paidAmount: getPaidAmount(order) })} className="px-2.5 py-1.5">Abrir orden</SecondaryButton><SecondaryButton onClick={() => onDelete?.(order.id)} className="px-2.5 py-1.5">Eliminar</SecondaryButton></div></td>}</tr>)}</tbody></table></div>
           {!compact && filteredOrders.length > perPage && <div className="flex items-center justify-between border-t border-white/10 px-5 py-3 text-sm text-zinc-500"><span>Página {page} de {totalPages}</span><div className="flex gap-2"><SecondaryButton onClick={() => setPage(Math.max(page - 1, 1))}>Anterior</SecondaryButton><SecondaryButton onClick={() => setPage(Math.min(page + 1, totalPages))}>Siguiente</SecondaryButton></div></div>}
         </>
       )}
@@ -1463,7 +1667,7 @@ function Monthly({ data }) {
   const current = new Date().toISOString().slice(0, 7);
   const monthOrders = data.orders.filter((o) => monthKey(o.date) === current);
   const total = monthOrders.reduce((s, o) => s + o.total, 0);
-  const paid = monthOrders.filter((o) => o.payment === "Pagado").reduce((s, o) => s + o.total, 0);
+  const paid = monthOrders.reduce((s, o) => s + getPaidAmount(o), 0);
   return <div className="space-y-6"><PageHeader label="Resumen mensual" title="Análisis operativo" text="Hacé click en un mes para abrir/descargar su registro mensual." /><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><StatCard label="Ingresos del mes" value={currency(total)} meta="Facturación registrada" icon="$" /><StatCard label="Órdenes" value={monthOrders.length} meta="Movimientos del mes" icon="OR" /><StatCard label="Cobranzas" value={currency(paid)} meta="Pagos completados" icon="OK" /><StatCard label="Pendiente" value={currency(total - paid)} meta="Saldo por cobrar" icon="PG" /></div><Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Historial mensual</h3><p className="mt-1 text-sm text-zinc-500">Resumen comparativo de rendimiento.</p></div>{summary.length === 0 ? <EmptyState title="Sin datos mensuales" text="Cuando cargues órdenes, el resumen se calculará automáticamente." /> : <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-zinc-600"><tr><th className="px-5 py-3">Mes</th><th className="px-5 py-3">Ingresos</th><th className="px-5 py-3">Órdenes</th><th className="px-5 py-3">Cobranzas</th><th className="px-5 py-3">Saldo pendiente</th></tr></thead><tbody className="divide-y divide-white/10">{summary.map((item) => <tr key={item.key} onClick={() => openMonthlyReport({ data, month: item })} className="cursor-pointer transition hover:bg-white/[0.07]"><td className="px-5 py-3 font-medium capitalize text-white">{item.label}</td><td className="px-5 py-3 text-zinc-300">{currency(item.revenue)}</td><td className="px-5 py-3 text-zinc-500">{item.orders}</td><td className="px-5 py-3 text-zinc-300">{currency(item.collected)}</td><td className="px-5 py-3 text-zinc-300">{currency(item.pending)}</td></tr>)}</tbody></table></div>}</Panel></div>;
 }
 
@@ -1479,8 +1683,8 @@ function buildMonthSummary(orders) {
     const item = map.get(key);
     item.revenue += order.total;
     item.orders += 1;
-    if (order.payment === "Pagado") item.collected += order.total;
-    else item.pending += order.total;
+    item.collected += getPaidAmount(order);
+    item.pending += getPendingAmount(order);
   }
   return [...map.values()].sort((a, b) => b.key.localeCompare(a.key));
 }
@@ -1497,11 +1701,6 @@ function Settings({ data, setData, account, exportData, resetData }) {
   const [business, setBusiness] = useState(data.business);
   const [editingService, setEditingService] = useState(null);
   const [serviceForm, setServiceForm] = useState({ name: "", suggestedPrice: "" });
-
-  useEffect(() => {
-    setProfile(data.profile);
-    setBusiness(data.business);
-  }, [data.profile, data.business]);
 
   function save(e) {
     e.preventDefault();
@@ -1664,8 +1863,8 @@ function AppShell({ account, initialData, onLogout }) {
   const [search, setSearch] = useState("");
   const [data, setData] = useState(initialData);
   useEffect(() => { writeJSON(dataKey(account.email), data); }, [data, account.email]);
-  function exportData() { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `nexo-management-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }
-  async function resetData() { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory({ ...emptyData, profile: data.profile, business: data.business }, "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }
+  const exportData = useCallback(() => { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `nexo-management-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }, [data]);
+  const resetData = useCallback(async () => { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory({ ...emptyData, profile: data.profile, business: data.business }, "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }, [data.business, data.profile]);
   const content = useMemo(() => {
     if (active === "dashboard") return <Dashboard data={data} setData={setData} />;
     if (active === "clients") return <Clients data={data} setData={setData} search={search} />;
@@ -1674,7 +1873,7 @@ function AppShell({ account, initialData, onLogout }) {
     if (active === "monthly") return <Monthly data={data} />;
     if (active === "history") return <History data={data} search={search} />;
     return <Settings data={data} setData={setData} account={account} exportData={exportData} resetData={resetData} />;
-  }, [active, data, search, account]);
+  }, [active, data, search, account, exportData, resetData]);
   return <main className="min-h-screen bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 lg:pl-72"><Topbar search={search} setSearch={setSearch} account={account} data={data} setActive={setActive} onLogout={onLogout} /><div className="px-5 py-8 lg:px-8"><div className="mb-6 flex gap-2 overflow-x-auto lg:hidden">{navItems.map((item) => <button key={item.id} onClick={() => setActive(item.id)} className={`shrink-0 rounded-full border px-4 py-2 text-sm ${active === item.id ? "border-white/20 bg-white/[0.1] text-white" : "border-white/10 bg-white/[0.035] text-zinc-500"}`}>{item.label}</button>)}</div>{content}</div></div></main>;
 }
 
