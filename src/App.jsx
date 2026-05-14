@@ -809,14 +809,24 @@ function Sidebar({ active, setActive, data }) {
   );
 }
 
-function Topbar({ search, setSearch, account, data, setActive, onLogout }) {
+function Topbar({ search, setSearch, active, setActive, account, data, onLogout }) {
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const fullName = formatFullName(data.profile) || `${account.name || ""} ${account.surname || ""}`.trim();
   const initials = fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "NM";
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[#080808]/90 px-4 py-3 backdrop-blur-xl sm:px-5 lg:px-8">
       <div className="flex flex-row items-center gap-3 md:justify-between">
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.06] lg:hidden"
+          aria-label="Abrir menú"
+        >
+          <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
+          <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
+          <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
+        </button>
         <div className="min-w-0 flex-1 md:max-w-xl">
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar clientes, presupuestos, órdenes, pagos..." className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-white/25" />
         </div>
@@ -834,6 +844,25 @@ function Topbar({ search, setSearch, account, data, setActive, onLogout }) {
           </div>
         </div>
       </div>
+      {menuOpen && (
+        <div className="mt-3 rounded-3xl border border-white/10 bg-zinc-950 p-3 shadow-2xl shadow-black/60 lg:hidden">
+          <div className="grid gap-2">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActive(item.id);
+                  setMenuOpen(false);
+                }}
+                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.1] text-white" : "text-zinc-500 hover:bg-white/[0.05] hover:text-zinc-200"}`}
+              >
+                <span className="font-mono text-sm">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
@@ -1892,7 +1921,7 @@ function AppShell({ account, initialData, onLogout }) {
     if (active === "history") return <History data={data} search={search} />;
     return <Settings data={data} setData={setData} account={account} exportData={exportData} resetData={resetData} />;
   }, [active, data, search, account, exportData, resetData]);
-  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} account={account} data={data} setActive={setActive} onLogout={onLogout} /><div className="px-4 py-5 pb-24 sm:px-5 sm:py-8 lg:px-8 lg:pb-8"><div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#080808]/95 px-3 py-2 backdrop-blur-xl lg:hidden"><div className="flex gap-2 overflow-x-auto pb-1">{navItems.map((item) => <button key={item.id} onClick={() => setActive(item.id)} className={`shrink-0 rounded-full border px-3 py-2 text-xs sm:px-4 sm:text-sm ${active === item.id ? "border-white/20 bg-white/[0.1] text-white" : "border-white/10 bg-white/[0.035] text-zinc-500"}`}>{item.label}</button>)}</div></div>{content}</div></div></main>;
+  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} active={active} setActive={setActive} account={account} data={data} onLogout={onLogout} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
 }
 
 export default function App() {
