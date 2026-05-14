@@ -1,17 +1,18 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_AUTH_DOMAIN",
-  projectId: "TU_PROJECT_ID",
-  storageBucket: "TU_STORAGE_BUCKET",
-  messagingSenderId: "TU_MESSAGING_SENDER_ID",
-  appId: "TU_APP_ID",
+  apiKey: "AIzaSyCAR62SkCs3h6N4RPmrK9qJvVd7Isf7bWg",
+  authDomain: "gestiones-marset-2-0.firebaseapp.com",
+  projectId: "gestiones-marset-2-0",
+  storageBucket: "gestiones-marset-2-0.firebasestorage.app",
+  messagingSenderId: "923461841461",
+  appId: "1:923461841461:web:80b24767ba3798604af77c",
+  measurementId: "G-3VRNY7JVZB"
 };
 
 const app = initializeApp(firebaseConfig);
 
-export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();

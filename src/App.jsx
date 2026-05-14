@@ -681,8 +681,9 @@ function AuthScreen({ onLogin }) {
       notify("Sesión iniciada con Google.");
       onLogin(account, data || emptyData);
     } catch (error) {
-      notify("Para usar Google real, agregá Firebase Auth y el archivo src/firebase.js con googleProvider.");
-    }
+  console.error("Error Google Auth:", error);
+  notify(error.code || error.message || "Error al iniciar sesión con Google.");
+}
   }
 
   return (
