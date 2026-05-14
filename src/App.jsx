@@ -47,6 +47,10 @@ function normalizeStoredData(data, account = {}) {
   });
 }
 
+function cloudDocId(email) {
+  return normalizeEmail(email).replaceAll("/", "_");
+}
+
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: "▦" },
   { id: "clients", label: "Clientes", icon: "◉" },
@@ -73,6 +77,43 @@ function readJSON(key, fallback) {
 
 function writeJSON(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+async function loadCloudWorkspace(email) {
+  try {
+    const [{ db }, { doc, getDoc }] = await Promise.all([
+      import("./firebase"),
+      import("firebase/firestore"),
+    ]);
+    const snapshot = await getDoc(doc(db, "workspaces", cloudDocId(email)));
+    return snapshot.exists() ? snapshot.data() : null;
+  } catch (error) {
+    console.warn("No se pudo leer Firestore:", error);
+    return null;
+  }
+}
+
+async function saveCloudWorkspace(email, account, data) {
+  try {
+    const [{ db }, { doc, serverTimestamp, setDoc }] = await Promise.all([
+      import("./firebase"),
+      import("firebase/firestore"),
+    ]);
+    await setDoc(
+      doc(db, "workspaces", cloudDocId(email)),
+      {
+        account,
+        data,
+        email: normalizeEmail(email),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return true;
+  } catch (error) {
+    console.warn("No se pudo guardar en Firestore:", error);
+    return false;
+  }
 }
 
 function dataKey(email) {
@@ -626,12 +667,12 @@ function AuthScreen({ onLogin }) {
     business: "",
   });
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     setError("");
     const email = form.email.trim().toLowerCase();
     const password = form.password;
-    const accounts = readJSON(ACCOUNTS_KEY, []);
+    let accounts = readJSON(ACCOUNTS_KEY, []);
 
     if (!email || !password) {
       setError("Completá email y contraseña.");
@@ -685,19 +726,32 @@ function AuthScreen({ onLogin }) {
       });
       writeJSON(ACCOUNTS_KEY, [account, ...accounts]);
       writeJSON(dataKey(email), data);
+      await saveCloudWorkspace(email, account, data);
       writeJSON(SESSION_KEY, { email });
       notify("Cuenta creada correctamente.");
       onLogin(account, data);
       return;
     }
 
-    const account = accounts.find((item) => item.email === email && item.password === password);
+    let account = accounts.find((item) => item.email === email && item.password === password);
+    let cloudWorkspace = null;
+    if (!account) {
+      cloudWorkspace = await loadCloudWorkspace(email);
+      if (cloudWorkspace?.account?.password === password) {
+        account = cloudWorkspace.account;
+        accounts = [account, ...accounts.filter((item) => item.email !== email)];
+        writeJSON(ACCOUNTS_KEY, accounts);
+      }
+    }
     if (!account) {
       setError("Email o contraseña incorrectos.");
       return;
     }
-    const data = normalizeStoredData(readJSON(dataKey(email), createEmptyData()), account);
+    cloudWorkspace = cloudWorkspace || await loadCloudWorkspace(email);
+    const localData = normalizeStoredData(readJSON(dataKey(email), createEmptyData()), account);
+    const data = normalizeStoredData(cloudWorkspace?.data || localData, account);
     writeJSON(dataKey(email), data);
+    if (!cloudWorkspace?.data) await saveCloudWorkspace(email, account, data);
     writeJSON(SESSION_KEY, { email });
     notify("Sesión iniciada correctamente.");
     onLogin(account, data);
@@ -717,7 +771,12 @@ function AuthScreen({ onLogin }) {
 
       const accounts = readJSON(ACCOUNTS_KEY, []);
       let account = accounts.find((item) => item.email === email);
-      let data = readJSON(dataKey(email), null);
+      const cloudWorkspace = await loadCloudWorkspace(email);
+      let data = cloudWorkspace?.data || readJSON(dataKey(email), null);
+
+      if (!account) {
+        account = cloudWorkspace?.account;
+      }
 
       if (!account) {
         const parts = (user.displayName || "Usuario Google").split(" ");
@@ -752,10 +811,13 @@ function AuthScreen({ onLogin }) {
         });
 
         writeJSON(ACCOUNTS_KEY, [account, ...accounts]);
+      } else if (!accounts.some((item) => item.email === email)) {
+        writeJSON(ACCOUNTS_KEY, [account, ...accounts]);
       }
 
       data = normalizeStoredData(data || createEmptyData(), account);
       writeJSON(dataKey(email), data);
+      await saveCloudWorkspace(email, account, data);
 
       writeJSON(SESSION_KEY, { email });
       notify("Sesión iniciada con Google.");
@@ -1960,9 +2022,30 @@ function AppShell({ account, initialData, onLogout }) {
   const [search, setSearch] = useState("");
   const accountEmail = normalizeEmail(account.email);
   const [data, setData] = useState(() => normalizeStoredData(initialData, account));
+  const [cloudReady, setCloudReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    loadCloudWorkspace(accountEmail).then((workspace) => {
+      if (cancelled) return;
+      if (workspace?.data) {
+        setData(normalizeStoredData(workspace.data, workspace.account || account));
+      }
+      setCloudReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [account, accountEmail]);
   useEffect(() => { writeJSON(dataKey(accountEmail), data); }, [data, accountEmail]);
+  useEffect(() => {
+    if (!cloudReady) return undefined;
+    const timer = window.setTimeout(() => {
+      saveCloudWorkspace(accountEmail, account, data);
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [account, accountEmail, cloudReady, data]);
   useEffect(() => {
     if (!menuOpen) return undefined;
     const previousOverflow = document.body.style.overflow;
