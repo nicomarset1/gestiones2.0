@@ -812,16 +812,40 @@ function Sidebar({ active, setActive, data }) {
 function Topbar({ search, setSearch, active, setActive, account, data, onLogout }) {
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuClosing, setMenuClosing] = useState(false);
   const fullName = formatFullName(data.profile) || `${account.name || ""} ${account.surname || ""}`.trim();
   const initials = fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "NM";
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [menuOpen]);
+
+  function closeMenu() {
+    setMenuClosing(true);
+    window.setTimeout(() => {
+      setMenuOpen(false);
+      setMenuClosing(false);
+    }, 220);
+  }
+
+  function openMenu() {
+    setMenuClosing(false);
+    setMenuOpen(true);
+    setOpen(false);
+  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[#080808]/75 px-5 py-3 backdrop-blur-xl lg:px-8">
       <div className="flex flex-row items-center gap-3 md:justify-between">
         <button
           onClick={() => {
-            setMenuOpen(!menuOpen);
-            setOpen(false);
+            if (menuOpen) closeMenu();
+            else openMenu();
           }}
           className={`flex h-11 w-11 shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border transition lg:hidden ${menuOpen ? "border-white/20 bg-white/[0.1]" : "border-white/10 bg-white/[0.06]"}`}
           aria-label="Abrir menú"
@@ -836,7 +860,7 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
         <div className="flex shrink-0 items-center gap-3">
           <div className="hidden items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-300 sm:flex"><span className="h-2 w-2 rounded-full bg-emerald-400" />Sistema activo</div>
           <div className="relative">
-            <button onClick={() => { setOpen(!open); setMenuOpen(false); }} className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-sm text-white">{initials}</button>
+            <button onClick={() => { setOpen(!open); if (menuOpen) closeMenu(); }} className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-sm text-white">{initials}</button>
             {open && (
               <div className="absolute right-0 top-14 w-[min(18rem,calc(100vw-2rem))] rounded-3xl border border-white/10 bg-zinc-950 p-3 shadow-2xl shadow-black/60">
                 <div className="border-b border-white/10 p-3"><p className="font-medium text-white">{fullName}</p><p className="mt-1 text-sm text-zinc-500">{data.profile.email || account.email}</p></div>
@@ -848,9 +872,9 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
         </div>
       </div>
       {menuOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm lg:hidden" onMouseDown={() => setMenuOpen(false)}>
+        <div className={`fixed inset-0 z-[120] bg-black/55 backdrop-blur-md lg:hidden ${menuClosing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onMouseDown={closeMenu}>
           <aside
-            className="h-full w-[min(20rem,86vw)] border-r border-white/10 bg-[#090909]/98 p-5 shadow-2xl shadow-black/70"
+            className={`h-full w-[min(20rem,86vw)] overflow-y-auto border-r border-white/10 bg-zinc-950 p-5 shadow-2xl shadow-black/80 ${menuClosing ? "nm-menu-drawer-out" : "nm-menu-drawer-in"}`}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="mb-7 flex items-center justify-between gap-3">
@@ -861,7 +885,7 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
                   <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">Menú</p>
                 </div>
               </div>
-              <button onClick={() => setMenuOpen(false)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-xl leading-none text-zinc-300">×</button>
+              <button onClick={closeMenu} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.08] text-xl leading-none text-zinc-200">×</button>
             </div>
 
             <nav className="space-y-2">
@@ -870,9 +894,9 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
                   key={item.id}
                   onClick={() => {
                     setActive(item.id);
-                    setMenuOpen(false);
+                    closeMenu();
                   }}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.08] text-white" : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"}`}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.1] text-white" : "text-zinc-300 hover:bg-white/[0.06] hover:text-white"}`}
                 >
                   <span className="font-mono text-sm">{item.icon}</span>
                   <span>{item.label}</span>

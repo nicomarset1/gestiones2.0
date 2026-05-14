@@ -21,3 +21,59 @@ textarea {
     font-size: 16px;
   }
 }
+
+@keyframes nmMenuOverlayIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(12px);
+  }
+}
+
+@keyframes nmMenuOverlayOut {
+  from {
+    opacity: 1;
+    backdrop-filter: blur(12px);
+  }
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+}
+
+@keyframes nmMenuDrawerIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes nmMenuDrawerOut {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.nm-menu-overlay-in {
+  animation: nmMenuOverlayIn 180ms ease-out both;
+}
+
+.nm-menu-overlay-out {
+  animation: nmMenuOverlayOut 220ms ease-in both;
+}
+
+.nm-menu-drawer-in {
+  animation: nmMenuDrawerIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.nm-menu-drawer-out {
+  animation: nmMenuDrawerOut 220ms ease-in both;
+}
