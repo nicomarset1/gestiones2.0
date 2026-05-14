@@ -874,7 +874,7 @@ function Topbar({ search, setSearch, active, setActive, account, data, onLogout 
       {menuOpen && (
         <div className={`fixed inset-0 z-[120] bg-black/55 backdrop-blur-md lg:hidden ${menuClosing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onMouseDown={closeMenu}>
           <aside
-            className={`h-full w-[min(20rem,86vw)] overflow-y-auto border-r border-white/10 bg-zinc-950 p-5 shadow-2xl shadow-black/80 ${menuClosing ? "nm-menu-drawer-out" : "nm-menu-drawer-in"}`}
+            className={`min-h-screen h-dvh w-[min(20rem,86vw)] overflow-y-auto border-r border-white/10 bg-zinc-950 p-5 shadow-2xl shadow-black/80 ${menuClosing ? "nm-menu-drawer-out" : "nm-menu-drawer-in"}`}
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="mb-7 flex items-center justify-between gap-3">
