@@ -26,21 +26,25 @@ textarea {
   from {
     opacity: 0;
     backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
   }
   to {
     opacity: 1;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
   }
 }
 
 @keyframes nmMenuOverlayOut {
   from {
     opacity: 1;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
   }
   to {
     opacity: 0;
     backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
   }
 }
 
