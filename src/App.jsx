@@ -68,6 +68,192 @@ const PAYMENT_STATUS = ["Pendiente", "Pago parcial", "Pagado"];
 const BUDGET_STATUS = ["Pendiente", "Convertido", "Rechazado"];
 const ORDER_OVERDUE_DAYS = 7;
 
+const EN_TRANSLATIONS = {
+  "Sistema web de gestión operativa": "Operations management web system",
+  "Centralizá clientes, presupuestos, órdenes, pagos, historial y resumen mensual desde una interfaz profesional, clara y funcional.": "Centralize clients, estimates, orders, payments, history, and monthly summaries from a professional, clear, functional interface.",
+  "Iniciar sesión": "Sign in",
+  "Crear cuenta": "Create account",
+  "Entrá a tu espacio": "Enter your workspace",
+  "Creá tu espacio de trabajo": "Create your workspace",
+  "Nombre": "First name",
+  "Apellido": "Last name",
+  "CUIT / CUIL": "Tax ID",
+  "Teléfono": "Phone",
+  "Nombre del negocio": "Business name",
+  "Contraseña": "Password",
+  "Continuar con Google": "Continue with Google",
+  "No tengo cuenta, crear una": "I do not have an account, create one",
+  "Ya tengo cuenta, iniciar sesión": "I already have an account, sign in",
+  "Solo números: 8 a 15 dígitos": "Numbers only: 8 to 15 digits",
+  "Dashboard": "Dashboard",
+  "Clientes": "Clients",
+  "Presupuestos": "Estimates",
+  "Órdenes y Pagos": "Orders and Payments",
+  "Resumen Mensual": "Monthly Summary",
+  "Historial": "History",
+  "Configuración": "Settings",
+  "Sistema activo": "System active",
+  "Buscar clientes, presupuestos, órdenes, pagos...": "Search clients, estimates, orders, payments...",
+  "Menú": "Menu",
+  "Abrir menú": "Open menu",
+  "Cerrar menú": "Close menu",
+  "Cambiar a modo claro": "Switch to light mode",
+  "Cambiar a modo oscuro": "Switch to dark mode",
+  "Cambiar a inglés": "Switch to English",
+  "Cambiar a español": "Switch to Spanish",
+  "Cerrar sesión": "Sign out",
+  "Confirmación": "Confirmation",
+  "¿Estás seguro?": "Are you sure?",
+  "Cancelar": "Cancel",
+  "Confirmar": "Confirm",
+  "Ingresos del mes": "Monthly revenue",
+  "Facturación registrada": "Registered billing",
+  "Órdenes": "Orders",
+  "Movimientos del mes": "Monthly activity",
+  "Cobranzas": "Collections",
+  "Pagos completados": "Completed payments",
+  "Pendiente": "Pending",
+  "Saldo por cobrar": "Outstanding balance",
+  "Acciones prioritarias": "Priority actions",
+  "Ingresos mensuales": "Monthly revenue",
+  "Evolución visual basada en órdenes reales.": "Visual trend based on real orders.",
+  "Estado de cobro": "Payment status",
+  "Pagado real vs pendiente real.": "Actual paid vs outstanding.",
+  "Pagado": "Paid",
+  "Pago parcial": "Partial payment",
+  "Terminado": "Finished",
+  "Atrasada": "Overdue",
+  "Convertido": "Converted",
+  "Rechazado": "Rejected",
+  "Cobrado": "Collected",
+  "Gestión de clientes": "Client management",
+  "Registro simple de clientes para asociarlos a presupuestos, órdenes y pagos.": "Simple client records to link with estimates, orders, and payments.",
+  "Descargar listado de clientes": "Download client list",
+  "Nuevo cliente": "New client",
+  "Editar cliente": "Edit client",
+  "Empresa / Cliente": "Company / Client",
+  "Notas": "Notes",
+  "Agregar cliente": "Add client",
+  "Guardar cambios": "Save changes",
+  "Clientes registrados": "Registered clients",
+  "resultados visibles": "visible results",
+  "Buscar cliente, teléfono, email o nota...": "Search client, phone, email, or note...",
+  "Más reciente": "Newest",
+  "Más antiguo": "Oldest",
+  "Alfabético": "Alphabetical",
+  "Sin clientes cargados": "No clients loaded",
+  "Agregá tu primer cliente para empezar.": "Add your first client to get started.",
+  "Registro": "Record",
+  "Ver registro": "View record",
+  "Editar": "Edit",
+  "Eliminar": "Delete",
+  "Página": "Page",
+  "de": "of",
+  "Anterior": "Previous",
+  "Siguiente": "Next",
+  "Servicio": "Service",
+  "Importe": "Amount",
+  "Estado": "Status",
+  "Acciones": "Actions",
+  "Nuevo presupuesto": "New estimate",
+  "Editar presupuesto": "Edit estimate",
+  "Presupuestos registrados": "Registered estimates",
+  "Lista compacta de presupuestos generados.": "Compact list of generated estimates.",
+  "Buscar presupuesto, cliente o servicio...": "Search estimate, client, or service...",
+  "Sin presupuestos": "No estimates",
+  "A orden": "To order",
+  "Abrir": "Open",
+  "Abrir presupuesto": "Open estimate",
+  "Convertir a orden": "Convert to order",
+  "Nueva orden": "New order",
+  "Editar orden": "Edit order",
+  "Órdenes recientes": "Recent orders",
+  "Control operativo y estado de cobro.": "Operational control and payment status.",
+  "Buscar orden, cliente, servicio o estado...": "Search order, client, service, or status...",
+  "Orden": "Order",
+  "Pago": "Payment",
+  "Total": "Total",
+  "Resta": "Remaining",
+  "Terminar": "Finish",
+  "Pagada": "Paid",
+  "Abrir orden": "Open order",
+  "Resumen mensual": "Monthly summary",
+  "Análisis operativo": "Operational analysis",
+  "Hacé click en un mes para abrir/descargar su registro mensual.": "Click a month to open/download its monthly record.",
+  "Historial mensual": "Monthly history",
+  "Resumen comparativo de rendimiento.": "Comparative performance summary.",
+  "Sin datos mensuales": "No monthly data",
+  "Cuando cargues órdenes, el resumen se calculará automáticamente.": "When you load orders, the summary will be calculated automatically.",
+  "Mes": "Month",
+  "Ingresos": "Revenue",
+  "Saldo pendiente": "Outstanding balance",
+  "Historial general": "General history",
+  "Actividad del sistema": "System activity",
+  "Registro filtrable de acciones importantes.": "Filterable log of important actions.",
+  "Todo": "All",
+  "Sistema": "System",
+  "Cliente": "Client",
+  "Presupuesto": "Estimate",
+  "Sin actividad": "No activity",
+  "Las acciones aparecerán acá.": "Actions will appear here.",
+  "Datos personales y negocio": "Personal and business details",
+  "Configurá la información principal del usuario, del negocio y los servicios frecuentes.": "Configure the main user, business, and frequent service information.",
+  "Datos personales": "Personal details",
+  "Email": "Email",
+  "Datos del negocio": "Business details",
+  "Rubro": "Category",
+  "Dirección": "Address",
+  "CUIT / Identificación": "Tax ID / Identification",
+  "Guardar configuración": "Save settings",
+  "Exportar datos": "Export data",
+  "Restaurar datos": "Restore data",
+  "Servicios frecuentes guardados": "Saved frequent services",
+  "Editá o eliminá los servicios que aparecen en el menú de órdenes.": "Edit or delete the services shown in the orders menu.",
+  "Nombre del servicio": "Service name",
+  "Precio sugerido": "Suggested price",
+  "Opcional": "Optional",
+  "Guardar servicio": "Save service",
+  "Agregar servicio": "Add service",
+  "Sin servicios frecuentes": "No frequent services",
+  "Cuando guardes servicios desde órdenes, van a aparecer acá.": "When you save services from orders, they will appear here.",
+  "Sin precio": "No price",
+};
+
+function translateText(value, language) {
+  if (language !== "en") return value;
+  return EN_TRANSLATIONS[value] || value;
+}
+
+function applyLanguage(root, language) {
+  if (!root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      if (["SCRIPT", "STYLE"].includes(node.parentElement?.tagName)) return NodeFilter.FILTER_REJECT;
+      if (node.parentElement?.closest("[data-nm-no-translate]")) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+
+  const textNodes = [];
+  while (walker.nextNode()) textNodes.push(walker.currentNode);
+  textNodes.forEach((node) => {
+    if (!node.nmOriginalText) node.nmOriginalText = node.nodeValue;
+    const original = node.nmOriginalText;
+    node.nodeValue = translateText(original, language);
+  });
+
+  root.querySelectorAll("[placeholder], [title], [aria-label]").forEach((node) => {
+    if (node.closest("[data-nm-no-translate]")) return;
+    ["placeholder", "title", "aria-label"].forEach((attribute) => {
+      if (!node.hasAttribute(attribute)) return;
+      const key = `nmOriginal${attribute.replace(/(^|-)([a-z])/g, (_, __, letter) => letter.toUpperCase())}`;
+      if (!node.dataset[key]) node.dataset[key] = node.getAttribute(attribute);
+      node.setAttribute(attribute, translateText(node.dataset[key], language));
+    });
+  });
+}
+
 function readJSON(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -938,17 +1124,23 @@ function Topbar({
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-lg text-white transition hover:border-white/20 hover:bg-white/[0.09]"
-            aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            data-nm-no-translate
+            className="nm-theme-toggle flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-lg text-white transition hover:border-white/20 hover:bg-white/[0.09]"
+            aria-label={
+              language === "en"
+                ? theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+                : theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"
+            }
             title={theme === "dark" ? "Light" : "Dark"}
           >
-            {theme === "dark" ? "☀" : "☾"}
+            <span key={theme} className="nm-theme-icon">{theme === "dark" ? "☀" : "☾"}</span>
           </button>
           <button
             type="button"
             onClick={toggleLanguage}
+            data-nm-no-translate
             className="flex h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:border-white/20 hover:bg-white/[0.09]"
-            aria-label={language === "es" ? "Cambiar a inglés" : "Cambiar a español"}
+            aria-label={language === "es" ? "Cambiar a inglés" : "Switch to Spanish"}
             title={language === "es" ? "English" : "Español"}
           >
             {language === "es" ? "ES" : "EN"}
@@ -2068,6 +2260,13 @@ function AppShell({ account, initialData, onLogout }) {
   useEffect(() => {
     document.documentElement.lang = language;
     localStorage.setItem(LANGUAGE_KEY, language);
+  }, [language]);
+  useEffect(() => {
+    const root = document.getElementById("root");
+    applyLanguage(root, language);
+    const observer = new MutationObserver(() => applyLanguage(root, language));
+    if (root) observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [language]);
   useEffect(() => {
     let cancelled = false;

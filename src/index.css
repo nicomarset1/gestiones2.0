@@ -15,6 +15,14 @@ body,
   overflow-x: hidden;
 }
 
+body,
+#root {
+  transition:
+    background-color 260ms ease,
+    color 260ms ease,
+    filter 320ms ease;
+}
+
 :root[data-theme="light"] body {
   background: #f4f4f5;
 }
@@ -28,6 +36,30 @@ body,
 :root[data-theme="light"] canvas,
 :root[data-theme="light"] svg {
   filter: invert(1) hue-rotate(180deg);
+}
+
+.nm-theme-toggle {
+  overflow: hidden;
+}
+
+.nm-theme-icon {
+  display: inline-flex;
+  animation: nmThemeIconSwap 260ms ease both;
+}
+
+@keyframes nmThemeIconSwap {
+  0% {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.65);
+  }
+  70% {
+    opacity: 1;
+    transform: rotate(12deg) scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
 }
 
 button,
