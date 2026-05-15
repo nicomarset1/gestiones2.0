@@ -278,12 +278,51 @@ const EN_TRANSLATIONS = {
   "Se actualizaron datos personales o del negocio.": "Personal or business details were updated.",
   "Se descargó una copia JSON.": "A JSON copy was downloaded.",
   "Se restauraron los datos operativos.": "Operational data was restored.",
+  "Página": "Page",
+  "de": "of",
+  "Guardar servicio frecuente": "Save frequent service",
+  "Incluir precio sugerido": "Include suggested price",
+  "Elegí un servicio guardado para cargarlo rápido.": "Choose a saved service to load it quickly.",
+  "No hay servicios frecuentes guardados.": "There are no saved frequent services.",
+  "Lista completa de clientes registrados": "Complete list of registered clients",
+  "Total clientes": "Total clients",
+  "Con teléfono": "With phone",
+  "Con email": "With email",
+  "Lista de clientes": "Client list",
+  "Fecha": "Date",
+  "Precio": "Price",
+  "Cant.": "Qty.",
+  "Total presupuestado": "Estimated total",
+  "Resta a pagar": "Remaining to pay",
+  "Presupuesto válido por 7 días desde la fecha de emisión.": "Estimate valid for 7 days from the issue date.",
+  "Este presupuesto detalla los servicios solicitados y sus importes correspondientes. Los valores indicados corresponden al servicio/trabajo presupuestado. No incluyen repuestos, materiales, insumos especiales ni costos adicionales, salvo que estén expresamente detallados en este documento. Los importes pueden estar sujetos a cambios si se agregan trabajos adicionales o modificaciones solicitadas posteriormente.": "This estimate details the requested services and their corresponding amounts. The listed values apply to the estimated service/work. They do not include spare parts, materials, special supplies, or additional costs unless expressly detailed in this document. Amounts may change if additional work or later requested changes are added.",
+  "Generado con Nexo Management": "Generated with Nexo Management",
+  "Imprimir / Guardar PDF": "Print / Save PDF",
+  "Datos del cliente": "Client details",
+  "Datos del presupuesto": "Estimate details",
+  "Datos del documento": "Document details",
+  "Número": "Number",
+  "Fecha de emisión": "Issue date",
+  "Estado de pago": "Payment status",
+  "Responsable": "Responsible",
+  "Registro completo de cliente": "Complete client record",
+  "Generado": "Generated",
+  "Órdenes / visitas": "Orders / visits",
+  "Sin clientes registrados.": "No registered clients.",
+  "Sin órdenes registradas.": "No registered orders.",
+  "Sin órdenes en este mes.": "No orders this month.",
+  "Total facturado": "Total billed",
+  "Facturado": "Billed",
 };
 
 function translateText(value, language) {
   if (language !== "en") return value;
   const text = String(value);
   if (EN_TRANSLATIONS[text]) return EN_TRANSLATIONS[text];
+  const trimmed = text.trim();
+  if (trimmed && EN_TRANSLATIONS[trimmed]) {
+    return text.replace(trimmed, EN_TRANSLATIONS[trimmed]);
+  }
 
   const visibleResults = text.match(/^(\d+)\s+resultados visibles$/);
   if (visibleResults) return `${visibleResults[1]} visible results`;
@@ -393,6 +432,22 @@ function applyLanguage(root, language) {
       node.setAttribute(attribute, translateText(node.dataset[key], language));
     });
   });
+}
+
+function currentLanguage() {
+  return document.documentElement.lang === "en" ? "en" : "es";
+}
+
+function translateGeneratedHtml(html) {
+  if (currentLanguage() !== "en") return html;
+  let translated = html;
+  Object.entries(EN_TRANSLATIONS)
+    .filter(([from]) => !["de", "Página"].includes(from))
+    .sort((a, b) => b[0].length - a[0].length)
+    .forEach(([from, to]) => {
+      translated = translated.replaceAll(from, to);
+    });
+  return translateText(translated, "en");
 }
 
 function readJSON(key, fallback) {
@@ -861,7 +916,7 @@ ${isBudget ? `<div class="validity">Presupuesto válido por 7 días desde la fec
     notify("El navegador bloqueó la apertura del documento. Permití ventanas emergentes.");
     return;
   }
-  win.document.write(html);
+  win.document.write(translateGeneratedHtml(html));
   win.document.close();
 }
 
@@ -947,7 +1002,7 @@ function openClientsListDocument({ data, clients }) {
     notify("El navegador bloqueó la apertura de la lista. Permití ventanas emergentes.");
     return;
   }
-  win.document.write(html);
+  win.document.write(translateGeneratedHtml(html));
   win.document.close();
 }
 
@@ -962,7 +1017,7 @@ function openClientRecord({ data, client }) {
     notify("El navegador bloqueó la apertura del registro. Permití ventanas emergentes.");
     return;
   }
-  win.document.write(html);
+  win.document.write(translateGeneratedHtml(html));
   win.document.close();
 }
 
@@ -979,7 +1034,7 @@ function openMonthlyReport({ data, month }) {
     notify("El navegador bloqueó la apertura del resumen mensual. Permití ventanas emergentes.");
     return;
   }
-  win.document.write(html);
+  win.document.write(translateGeneratedHtml(html));
   win.document.close();
 }
 
