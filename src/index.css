@@ -1,10 +1,33 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
 html,
 body,
 #root {
   min-width: 0;
   overflow-x: hidden;
+}
+
+:root[data-theme="light"] body {
+  background: #f4f4f5;
+}
+
+:root[data-theme="light"] #root {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+:root[data-theme="light"] img,
+:root[data-theme="light"] video,
+:root[data-theme="light"] canvas,
+:root[data-theme="light"] svg {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 button,

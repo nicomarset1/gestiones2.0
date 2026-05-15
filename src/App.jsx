@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 const APP_KEY = "nexo-management-v1";
 const ACCOUNTS_KEY = `${APP_KEY}:accounts`;
 const SESSION_KEY = `${APP_KEY}:session`;
+const THEME_KEY = `${APP_KEY}:theme`;
+const LANGUAGE_KEY = `${APP_KEY}:language`;
 
 const emptyData = {
   profile: {
@@ -894,7 +896,21 @@ function Sidebar({ active, setActive, data }) {
   );
 }
 
-function Topbar({ search, setSearch, menuOpen, toggleMenu, closeMenu, account, data, setActive, onLogout }) {
+function Topbar({
+  search,
+  setSearch,
+  menuOpen,
+  toggleMenu,
+  closeMenu,
+  account,
+  data,
+  setActive,
+  onLogout,
+  theme,
+  toggleTheme,
+  language,
+  toggleLanguage,
+}) {
   const [open, setOpen] = useState(false);
   const fullName = formatFullName(data.profile) || `${account.name || ""} ${account.surname || ""}`.trim();
   const initials = fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "NM";
@@ -919,6 +935,24 @@ function Topbar({ search, setSearch, menuOpen, toggleMenu, closeMenu, account, d
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar clientes, presupuestos, órdenes, pagos..." className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-white/25" />
         </div>
         <div className="flex shrink-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-lg text-white transition hover:border-white/20 hover:bg-white/[0.09]"
+            aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            title={theme === "dark" ? "Light" : "Dark"}
+          >
+            {theme === "dark" ? "☀" : "☾"}
+          </button>
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="flex h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:border-white/20 hover:bg-white/[0.09]"
+            aria-label={language === "es" ? "Cambiar a inglés" : "Cambiar a español"}
+            title={language === "es" ? "English" : "Español"}
+          >
+            {language === "es" ? "ES" : "EN"}
+          </button>
           <div className="hidden items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-300 sm:flex"><span className="h-2 w-2 rounded-full bg-emerald-400" />Sistema activo</div>
           <div className="relative">
             <button onClick={() => { setOpen(!open); if (menuOpen) closeMenu(); }} className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-sm text-white">{initials}</button>
@@ -2022,9 +2056,19 @@ function AppShell({ account, initialData, onLogout }) {
   const [search, setSearch] = useState("");
   const accountEmail = normalizeEmail(account.email);
   const [data, setData] = useState(() => normalizeStoredData(initialData, account));
+  const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark");
+  const [language, setLanguage] = useState(() => localStorage.getItem(LANGUAGE_KEY) === "en" ? "en" : "es");
   const [cloudReady, setCloudReady] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
+  useEffect(() => {
+    document.documentElement.lang = language;
+    localStorage.setItem(LANGUAGE_KEY, language);
+  }, [language]);
   useEffect(() => {
     let cancelled = false;
     loadCloudWorkspace(accountEmail).then((workspace) => {
@@ -2080,7 +2124,7 @@ function AppShell({ account, initialData, onLogout }) {
     if (active === "history") return <History data={data} search={search} />;
     return <Settings data={data} setData={setData} account={account} exportData={exportData} resetData={resetData} />;
   }, [active, data, search, account, exportData, resetData]);
-  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><MobileMenuDrawer open={menuOpen} closing={menuClosing} active={active} setActive={setActive} data={data} closeMenu={closeMenu} /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} account={account} data={data} setActive={setActive} onLogout={onLogout} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
+  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><MobileMenuDrawer open={menuOpen} closing={menuClosing} active={active} setActive={setActive} data={data} closeMenu={closeMenu} /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} account={account} data={data} setActive={setActive} onLogout={onLogout} theme={theme} toggleTheme={() => setTheme((value) => value === "dark" ? "light" : "dark")} language={language} toggleLanguage={() => setLanguage((value) => value === "es" ? "en" : "es")} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
 }
 
 export default function App() {
