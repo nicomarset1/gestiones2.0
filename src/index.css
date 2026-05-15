@@ -42,6 +42,52 @@ body,
   filter: invert(1) hue-rotate(180deg);
 }
 
+:root[data-theme="light"] .nm-mobile-drawer-layer {
+  background: rgba(244, 244, 245, 0.78);
+}
+
+:root[data-theme="light"] .nm-mobile-drawer-layer aside {
+  background: #fafafa;
+  border-color: rgba(24, 24, 27, 0.12);
+  box-shadow: 0 24px 70px rgba(24, 24, 27, 0.22);
+}
+
+:root[data-theme="light"] .nm-mobile-drawer-layer * {
+  border-color: rgba(24, 24, 27, 0.12);
+}
+
+:root[data-theme="light"] .nm-mobile-drawer-layer .text-white,
+:root[data-theme="light"] .nm-mobile-drawer-layer .text-zinc-100,
+:root[data-theme="light"] .nm-mobile-drawer-layer .text-zinc-200,
+:root[data-theme="light"] .nm-mobile-drawer-layer .text-zinc-300 {
+  color: #18181b !important;
+}
+
+:root[data-theme="light"] .nm-mobile-drawer-layer .text-zinc-500,
+:root[data-theme="light"] .nm-mobile-drawer-layer .text-zinc-600 {
+  color: #71717a !important;
+}
+
+:root[data-theme="light"] .nm-mobile-drawer-layer button {
+  background-color: rgba(24, 24, 27, 0.04);
+}
+
+:root[data-theme="light"] .nm-mobile-drawer-layer button:hover {
+  background-color: rgba(24, 24, 27, 0.08);
+}
+
+:root[data-theme="light"] .nm-mobile-drawer-layer [class*="bg-white"] {
+  background-color: rgba(24, 24, 27, 0.05) !important;
+}
+
+:root[data-theme="light"] .nm-mobile-drawer-layer [class*="bg-zinc-950"] {
+  background-color: #fafafa !important;
+}
+
+:root[data-theme="light"] .nm-mobile-drawer-layer [class*="bg-zinc-100"] {
+  background-color: #18181b !important;
+}
+
 .nm-theme-toggle {
   overflow: hidden;
 }
