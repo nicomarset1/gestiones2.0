@@ -217,11 +217,150 @@ const EN_TRANSLATIONS = {
   "Sin servicios frecuentes": "No frequent services",
   "Cuando guardes servicios desde órdenes, van a aparecer acá.": "When you save services from orders, they will appear here.",
   "Sin precio": "No price",
+  "Resumen general": "General summary",
+  "Base comercial": "Client base",
+  "Órdenes pendientes": "Pending orders",
+  "Trabajos pendientes del mes": "Pending jobs this month",
+  "Atrasadas": "Overdue",
+  "Por cobrar": "Receivables",
+  "Pendientes +7 días": "Pending +7 days",
+  "Acciones prioritarias": "Priority actions",
+  "Órdenes atrasadas o con saldo pendiente para resolver primero.": "Overdue orders or open balances to resolve first.",
+  "Sin pendientes críticos": "No critical pending items",
+  "No hay órdenes atrasadas ni saldos abiertos para priorizar.": "There are no overdue orders or open balances to prioritize.",
+  "Cobro pendiente": "Payment pending",
+  "Marcar pagada": "Mark as paid",
+  "Pendientes": "Pending",
+  "Generador de presupuestos": "Estimate generator",
+  "Creá presupuestos simples para clientes, sin mezclarlos con órdenes reales.": "Create simple client estimates without mixing them with real orders.",
+  "Primero cargá un cliente": "Load a client first",
+  "Los presupuestos necesitan un cliente asociado.": "Estimates need an associated client.",
+  "Crear presupuesto": "Create estimate",
+  "Cuando crees presupuestos, van a aparecer en esta lista.": "When you create estimates, they will appear in this list.",
+  "Observaciones": "Notes",
+  "Servicios frecuentes": "Frequent services",
+  "Órdenes y pagos": "Orders and payments",
+  "Flujo operativo": "Operations workflow",
+  "Órdenes reales de trabajo o compra, con estado de avance y cobro.": "Real work or purchase orders with progress and payment status.",
+  "Las órdenes necesitan un cliente asociado.": "Orders need an associated client.",
+  "Crear orden": "Create order",
+  "Sin órdenes cargadas": "No orders loaded",
+  "Cuando crees órdenes, van a aparecer en esta tabla.": "When you create orders, they will appear in this table.",
+  "Monto pagado": "Paid amount",
+  "Marcar como terminado": "Mark as finished",
+  "Marcar como pagado": "Mark as paid",
+  "No hay información para mostrar en este apartado.": "There is no information to show in this section.",
+  "Sin datos": "No data",
+  "Sin clientes": "No clients",
+  "Todavía no hay clientes registrados.": "There are no registered clients yet.",
+  "Saldos pendientes del mes": "Outstanding balances this month",
+  "Órdenes con dinero pendiente de cobro durante el mes actual.": "Orders with money pending collection during the current month.",
+  "Órdenes pendientes con más de 7 días abiertas.": "Pending orders open for more than 7 days.",
+  "Cobros pendientes": "Pending collections",
+  "Presupuesto actualizado": "Estimate updated",
+  "Presupuesto creado": "Estimate created",
+  "Presupuesto eliminado": "Estimate deleted",
+  "Presupuesto convertido en orden": "Estimate converted to order",
+  "Orden terminada": "Order finished",
+  "Orden pagada": "Order paid",
+  "Orden actualizada": "Order updated",
+  "Orden creada": "Order created",
+  "Orden eliminada": "Order deleted",
+  "Cliente actualizado": "Client updated",
+  "Cliente creado": "Client created",
+  "Cliente eliminado": "Client deleted",
+  "Configuración actualizada": "Settings updated",
+  "Datos exportados": "Data exported",
+  "Datos restaurados": "Data restored",
+  "Servicio frecuente actualizado": "Frequent service updated",
+  "Servicio frecuente creado": "Frequent service created",
+  "Servicio frecuente eliminado": "Frequent service deleted",
+  "Se actualizaron datos personales o del negocio.": "Personal or business details were updated.",
+  "Se descargó una copia JSON.": "A JSON copy was downloaded.",
+  "Se restauraron los datos operativos.": "Operational data was restored.",
 };
 
 function translateText(value, language) {
   if (language !== "en") return value;
-  return EN_TRANSLATIONS[value] || value;
+  const text = String(value);
+  if (EN_TRANSLATIONS[text]) return EN_TRANSLATIONS[text];
+
+  const visibleResults = text.match(/^(\d+)\s+resultados visibles$/);
+  if (visibleResults) return `${visibleResults[1]} visible results`;
+
+  const page = text.match(/^Página\s+(\d+)\s+de\s+(\d+)$/);
+  if (page) return `Page ${page[1]} of ${page[2]}`;
+
+  const monthlyView = text.match(/^Vista mensual del estado operativo, financiero y comercial de (.+)\.$/);
+  if (monthlyView) return `Monthly view of operational, financial, and commercial status for ${translateText(monthlyView[1], language)}.`;
+
+  const pendingDays = text.match(/^Pendientes \+(\d+) días$/);
+  if (pendingDays) return `Pending +${pendingDays[1]} days`;
+
+  const overdueDays = text.match(/^Órdenes pendientes con más de (\d+) días abiertas\.$/);
+  if (overdueDays) return `Pending orders open for more than ${overdueDays[1]} days.`;
+
+  const months = {
+    enero: "January",
+    febrero: "February",
+    marzo: "March",
+    abril: "April",
+    mayo: "May",
+    junio: "June",
+    julio: "July",
+    agosto: "August",
+    septiembre: "September",
+    octubre: "October",
+    noviembre: "November",
+    diciembre: "December",
+    ene: "Jan",
+    feb: "Feb",
+    mar: "Mar",
+    abr: "Apr",
+    may: "May",
+    jun: "Jun",
+    jul: "Jul",
+    ago: "Aug",
+    sep: "Sep",
+    oct: "Oct",
+    nov: "Nov",
+    dic: "Dec",
+  };
+  const translatedMonth = text.replace(
+    /\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\b(\s+de\s+(\d{4}))?/gi,
+    (match, month, _yearChunk, year) => {
+      const translated = months[month.toLowerCase()] || month;
+      return year ? `${translated} ${year}` : translated;
+    }
+  );
+  if (translatedMonth !== text) return translatedMonth;
+
+  return text
+    .replaceAll("Presupuesto", "Estimate")
+    .replaceAll("presupuesto", "estimate")
+    .replaceAll("Presupuestos", "Estimates")
+    .replaceAll("presupuestos", "estimates")
+    .replaceAll("Órdenes", "Orders")
+    .replaceAll("órdenes", "orders")
+    .replaceAll("Orden", "Order")
+    .replaceAll("orden", "order")
+    .replaceAll("Cliente", "Client")
+    .replaceAll("cliente", "client")
+    .replaceAll("Pendiente", "Pending")
+    .replaceAll("pendiente", "pending")
+    .replaceAll("Pagado", "Paid")
+    .replaceAll("pagada", "paid")
+    .replaceAll("pagado", "paid")
+    .replaceAll("Terminado", "Finished")
+    .replaceAll("terminada", "finished")
+    .replaceAll("eliminada", "deleted")
+    .replaceAll("eliminado", "deleted")
+    .replaceAll("creada", "created")
+    .replaceAll("creado", "created")
+    .replaceAll("actualizada", "updated")
+    .replaceAll("actualizado", "updated")
+    .replaceAll("convertido en", "converted to")
+    .replaceAll("sin cliente", "no client");
 }
 
 function applyLanguage(root, language) {
@@ -238,7 +377,9 @@ function applyLanguage(root, language) {
   const textNodes = [];
   while (walker.nextNode()) textNodes.push(walker.currentNode);
   textNodes.forEach((node) => {
-    if (!node.nmOriginalText) node.nmOriginalText = node.nodeValue;
+    if (!node.nmOriginalText || (language === "en" && node.nodeValue !== translateText(node.nmOriginalText, language))) {
+      node.nmOriginalText = node.nodeValue;
+    }
     const original = node.nmOriginalText;
     node.nodeValue = translateText(original, language);
   });
