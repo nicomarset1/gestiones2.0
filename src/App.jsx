@@ -1290,6 +1290,8 @@ function Sidebar({ active, setActive, data }) {
 function Topbar({
   search,
   setSearch,
+  searchFilter,
+  setSearchFilter,
   menuOpen,
   toggleMenu,
   closeMenu,
@@ -1322,8 +1324,15 @@ function Topbar({
           <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
           <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
         </button>
-        <div className="min-w-0 flex-1 md:max-w-xl">
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar clientes, presupuestos, órdenes, pagos..." className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-white/25" />
+        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_7.5rem] gap-2 md:max-w-2xl md:grid-cols-[minmax(0,1fr)_10rem]">
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar clientes, presupuestos, órdenes, pagos..." className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-white/25" />
+          <select value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-medium text-zinc-300 outline-none sm:text-sm">
+            <option className="bg-zinc-950" value="all">Todo</option>
+            <option className="bg-zinc-950" value="clients">Clientes</option>
+            <option className="bg-zinc-950" value="budgets">Presupuestos</option>
+            <option className="bg-zinc-950" value="orders">Órdenes</option>
+            <option className="bg-zinc-950" value="history">Historial</option>
+          </select>
         </div>
         <div className="flex shrink-0 items-center gap-3">
           <button
@@ -1371,9 +1380,9 @@ function MobileMenuDrawer({ open, closing, active, setActive, data, closeMenu, t
   if (!open) return null;
 
   return (
-    <div className={`fixed inset-0 z-[120] bg-black/45 backdrop-blur-xl lg:hidden ${closing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onClick={closeMenu}>
+    <div className={`fixed inset-0 z-[120] overflow-hidden overscroll-contain bg-black/45 backdrop-blur-xl lg:hidden ${closing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onClick={closeMenu}>
       <aside
-        className={`flex min-h-screen h-dvh w-[min(20rem,86vw)] flex-col overflow-y-auto border-r border-white/10 bg-zinc-950 p-5 shadow-2xl shadow-black/80 ${closing ? "nm-menu-drawer-out" : "nm-menu-drawer-in"}`}
+        className={`flex h-dvh max-h-dvh w-[min(20rem,86vw)] flex-col overflow-hidden overscroll-contain border-r border-white/10 bg-zinc-950 p-5 shadow-2xl shadow-black/80 ${closing ? "nm-menu-drawer-out" : "nm-menu-drawer-in"}`}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-7 flex items-center justify-between gap-3">
@@ -1390,7 +1399,7 @@ function MobileMenuDrawer({ open, closing, active, setActive, data, closeMenu, t
           </button>
         </div>
 
-        <nav className="space-y-2">
+        <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1">
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -1405,7 +1414,7 @@ function MobileMenuDrawer({ open, closing, active, setActive, data, closeMenu, t
             </button>
           ))}
         </nav>
-        <div className="mt-auto border-t border-white/10 pt-4">
+        <div className="shrink-0 border-t border-white/10 bg-zinc-950 pt-4">
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
@@ -2305,13 +2314,19 @@ function History({ data, search }) {
   return <div className="space-y-6"><PageHeader label="Historial general" title="Actividad del sistema" text="Registro filtrable de acciones importantes." /><Panel className="overflow-hidden"><div className="flex flex-wrap gap-2 border-b border-white/10 p-5">{filters.map((f) => <button key={f} onClick={() => setFilter(f)} className={`rounded-full border px-3 py-1.5 text-xs ${filter === f ? "border-white/20 bg-white/[0.1] text-white" : "border-white/10 bg-white/[0.035] text-zinc-500"}`}>{f}</button>)}</div>{items.length === 0 ? <EmptyState title="Sin actividad" text="Las acciones aparecerán acá." /> : <div className="divide-y divide-white/10">{items.map((item) => <div key={item.id} className="flex flex-col gap-3 p-5 hover:bg-white/[0.035] md:flex-row md:items-center md:justify-between"><div><div className="flex items-center gap-3"><Badge>{item.type}</Badge><h3 className="font-medium text-white">{item.title}</h3></div><p className="mt-2 text-sm text-zinc-500">{item.description}</p></div><p className="text-sm text-zinc-600">{dateTimeLabel(item.date)}</p></div>)}</div>}</Panel></div>;
 }
 
-function GlobalSearchResults({ data, search, setActive, clearSearch }) {
+function GlobalSearchResults({ data, search, filter, setActive, clearSearch }) {
   const query = search.trim().toLowerCase();
   const clients = data.clients.filter((client) => [client.name, client.phone, client.email, client.notes].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const budgets = data.budgets.filter((budget) => [budget.id, budget.client, budget.service, budget.status, budget.observations].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const orders = data.orders.filter((order) => [order.id, order.client, order.service, order.status, order.payment, order.observations].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const history = data.history.filter((item) => [item.type, item.title, item.description].join(" ").toLowerCase().includes(query)).slice(0, 8);
-  const total = clients.length + budgets.length + orders.length + history.length;
+  const groups = [
+    { key: "clients", title: "Clientes", section: "clients", items: clients },
+    { key: "budgets", title: "Presupuestos", section: "budgets", items: budgets },
+    { key: "orders", title: "Órdenes", section: "orders", items: orders },
+    { key: "history", title: "Historial", section: "history", items: history },
+  ].filter((group) => filter === "all" || group.key === filter);
+  const total = groups.reduce((sum, group) => sum + group.items.length, 0);
 
   function openSection(section) {
     setActive(section);
@@ -2334,18 +2349,14 @@ function GlobalSearchResults({ data, search, setActive, clearSearch }) {
     <div className="space-y-6">
       <PageHeader label="Búsqueda" title="Resultados globales" text={`${total} coincidencias para "${search.trim()}".`} />
       <div className="grid gap-6 xl:grid-cols-2">
-        <ResultGroup title="Clientes" section="clients" empty={clients.length === 0}>
-          {clients.map((client) => <button key={client.id} onClick={() => openSection("clients")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{client.name}</p><p className="mt-1 text-sm text-zinc-500">{[client.phone, client.email].filter(Boolean).join(" · ") || client.id}</p></button>)}
-        </ResultGroup>
-        <ResultGroup title="Presupuestos" section="budgets" empty={budgets.length === 0}>
-          {budgets.map((budget) => <button key={budget.id} onClick={() => openSection("budgets")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-mono text-sm text-zinc-300">{budget.id}</p><p className="mt-1 font-medium text-white">{budget.client}</p><p className="mt-1 text-sm text-zinc-500">{budget.service} · {currency(budget.amount)}</p></button>)}
-        </ResultGroup>
-        <ResultGroup title="Órdenes" section="orders" empty={orders.length === 0}>
-          {orders.map((order) => <button key={order.id} onClick={() => openSection("orders")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-mono text-sm text-zinc-300">{order.id}</p><p className="mt-1 font-medium text-white">{order.client}</p><p className="mt-1 text-sm text-zinc-500">{order.service} · {currency(order.total)}</p></button>)}
-        </ResultGroup>
-        <ResultGroup title="Historial" section="history" empty={history.length === 0}>
-          {history.map((item) => <button key={item.id} onClick={() => openSection("history")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><div className="flex items-center gap-3"><Badge>{item.type}</Badge><p className="font-medium text-white">{item.title}</p></div><p className="mt-2 text-sm text-zinc-500">{item.description}</p></button>)}
-        </ResultGroup>
+        {groups.map((group) => (
+          <ResultGroup key={group.key} title={group.title} section={group.section} empty={group.items.length === 0}>
+            {group.key === "clients" && group.items.map((client) => <button key={client.id} onClick={() => openSection("clients")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{client.name}</p><p className="mt-1 text-sm text-zinc-500">{[client.phone, client.email].filter(Boolean).join(" · ") || client.id}</p></button>)}
+            {group.key === "budgets" && group.items.map((budget) => <button key={budget.id} onClick={() => openSection("budgets")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-mono text-sm text-zinc-300">{budget.id}</p><p className="mt-1 font-medium text-white">{budget.client}</p><p className="mt-1 text-sm text-zinc-500">{budget.service} · {currency(budget.amount)}</p></button>)}
+            {group.key === "orders" && group.items.map((order) => <button key={order.id} onClick={() => openSection("orders")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-mono text-sm text-zinc-300">{order.id}</p><p className="mt-1 font-medium text-white">{order.client}</p><p className="mt-1 text-sm text-zinc-500">{order.service} · {currency(order.total)}</p></button>)}
+            {group.key === "history" && group.items.map((item) => <button key={item.id} onClick={() => openSection("history")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><div className="flex items-center gap-3"><Badge>{item.type}</Badge><p className="font-medium text-white">{item.title}</p></div><p className="mt-2 text-sm text-zinc-500">{item.description}</p></button>)}
+          </ResultGroup>
+        ))}
       </div>
     </div>
   );
@@ -2525,6 +2536,7 @@ function Settings({ data, setData, account, exportData, resetData }) {
 function AppShell({ account, initialData, onLogout }) {
   const [active, setActive] = useState("dashboard");
   const [search, setSearch] = useState("");
+  const [searchFilter, setSearchFilter] = useState("all");
   const accountEmail = normalizeEmail(account.email);
   const [data, setData] = useState(() => normalizeStoredData(initialData, account));
   const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark");
@@ -2594,7 +2606,7 @@ function AppShell({ account, initialData, onLogout }) {
   const exportData = useCallback(() => { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `nexo-management-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }, [data]);
   const resetData = useCallback(async () => { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory(createEmptyData({ profile: data.profile, business: data.business }), "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }, [data.business, data.profile]);
   const content = useMemo(() => {
-    if (search.trim()) return <GlobalSearchResults data={data} search={search} setActive={setActive} clearSearch={() => setSearch("")} />;
+    if (search.trim()) return <GlobalSearchResults data={data} search={search} filter={searchFilter} setActive={setActive} clearSearch={() => setSearch("")} />;
     if (active === "dashboard") return <Dashboard data={data} setData={setData} />;
     if (active === "clients") return <Clients data={data} setData={setData} search={search} />;
     if (active === "budgets") return <Budgets data={data} setData={setData} search={search} />;
@@ -2602,10 +2614,10 @@ function AppShell({ account, initialData, onLogout }) {
     if (active === "monthly") return <Monthly data={data} />;
     if (active === "history") return <History data={data} search={search} />;
     return <Settings data={data} setData={setData} account={account} exportData={exportData} resetData={resetData} />;
-  }, [active, data, search, setActive, account, exportData, resetData]);
+  }, [active, data, search, searchFilter, setActive, account, exportData, resetData]);
   const toggleTheme = () => setTheme((value) => value === "dark" ? "light" : "dark");
   const toggleLanguage = () => setLanguage((value) => value === "es" ? "en" : "es");
-  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><MobileMenuDrawer open={menuOpen} closing={menuClosing} active={active} setActive={setActive} data={data} closeMenu={closeMenu} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} account={account} data={data} setActive={setActive} onLogout={onLogout} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
+  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><MobileMenuDrawer open={menuOpen} closing={menuClosing} active={active} setActive={setActive} data={data} closeMenu={closeMenu} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} searchFilter={searchFilter} setSearchFilter={setSearchFilter} menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} account={account} data={data} setActive={setActive} onLogout={onLogout} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
 }
 
 export default function App() {
