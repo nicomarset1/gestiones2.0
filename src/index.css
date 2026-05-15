@@ -19,22 +19,26 @@ body,
 #root {
   transition:
     background-color 260ms ease,
-    color 260ms ease,
-    filter 320ms ease;
+    color 260ms ease;
 }
 
 :root[data-theme="light"] body {
   background: #f4f4f5;
 }
 
-:root[data-theme="light"] #root {
-  filter: invert(1) hue-rotate(180deg);
+:root[data-theme="light"] main {
+  background: #f4f4f5 !important;
 }
 
-:root[data-theme="light"] img,
-:root[data-theme="light"] video,
-:root[data-theme="light"] canvas,
-:root[data-theme="light"] svg {
+:root[data-theme="light"] #root > main > :not(.nm-mobile-drawer-layer) {
+  filter: invert(1) hue-rotate(180deg);
+  transition: filter 320ms ease;
+}
+
+:root[data-theme="light"] #root > main > :not(.nm-mobile-drawer-layer) img,
+:root[data-theme="light"] #root > main > :not(.nm-mobile-drawer-layer) video,
+:root[data-theme="light"] #root > main > :not(.nm-mobile-drawer-layer) canvas,
+:root[data-theme="light"] #root > main > :not(.nm-mobile-drawer-layer) svg {
   filter: invert(1) hue-rotate(180deg);
 }
 

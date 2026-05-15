@@ -319,6 +319,8 @@ const EN_TRANSLATIONS = {
   "Ver sección": "View section",
   "Sin resultados": "No results",
   "No hay coincidencias para esta sección.": "There are no matches for this section.",
+  "Filtrar": "Filter",
+  "Filtrar búsqueda": "Filter search",
 };
 
 function translateText(value, language) {
@@ -1324,10 +1326,10 @@ function Topbar({
           <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
           <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
         </button>
-        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_7.5rem] gap-2 md:max-w-2xl md:grid-cols-[minmax(0,1fr)_10rem]">
+        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_5.75rem] gap-2 md:max-w-2xl md:grid-cols-[minmax(0,1fr)_7rem]">
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar clientes, presupuestos, órdenes, pagos..." className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-white/25" />
-          <select value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs font-medium text-zinc-300 outline-none sm:text-sm">
-            <option className="bg-zinc-950" value="all">Todo</option>
+          <select aria-label="Filtrar búsqueda" title="Filtrar" value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] px-2 py-2.5 text-xs font-medium text-zinc-300 outline-none sm:px-3">
+            <option className="bg-zinc-950" value="all">Filtrar</option>
             <option className="bg-zinc-950" value="clients">Clientes</option>
             <option className="bg-zinc-950" value="budgets">Presupuestos</option>
             <option className="bg-zinc-950" value="orders">Órdenes</option>
@@ -1380,7 +1382,7 @@ function MobileMenuDrawer({ open, closing, active, setActive, data, closeMenu, t
   if (!open) return null;
 
   return (
-    <div className={`fixed inset-0 z-[120] overflow-hidden overscroll-contain bg-black/45 backdrop-blur-xl lg:hidden ${closing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onClick={closeMenu}>
+    <div className={`nm-mobile-drawer-layer fixed inset-0 z-[120] overflow-hidden overscroll-contain bg-black/45 backdrop-blur-xl lg:hidden ${closing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onClick={closeMenu}>
       <aside
         className={`flex h-dvh max-h-dvh w-[min(20rem,86vw)] flex-col overflow-hidden overscroll-contain border-r border-white/10 bg-zinc-950 p-5 shadow-2xl shadow-black/80 ${closing ? "nm-menu-drawer-out" : "nm-menu-drawer-in"}`}
         onClick={(event) => event.stopPropagation()}
