@@ -313,6 +313,12 @@ const EN_TRANSLATIONS = {
   "Sin órdenes en este mes.": "No orders this month.",
   "Total facturado": "Total billed",
   "Facturado": "Billed",
+  "Búsqueda": "Search",
+  "Resultados globales": "Global results",
+  "coincidencias para": "matches for",
+  "Ver sección": "View section",
+  "Sin resultados": "No results",
+  "No hay coincidencias para esta sección.": "There are no matches for this section.",
 };
 
 function translateText(value, language) {
@@ -329,6 +335,9 @@ function translateText(value, language) {
 
   const page = text.match(/^Página\s+(\d+)\s+de\s+(\d+)$/);
   if (page) return `Page ${page[1]} of ${page[2]}`;
+
+  const matches = text.match(/^(\d+)\s+coincidencias para "(.+)"\.$/);
+  if (matches) return `${matches[1]} matches for "${matches[2]}".`;
 
   const monthlyView = text.match(/^Vista mensual del estado operativo, financiero y comercial de (.+)\.$/);
   if (monthlyView) return `Monthly view of operational, financial, and commercial status for ${translateText(monthlyView[1], language)}.`;
@@ -1321,7 +1330,7 @@ function Topbar({
             type="button"
             onClick={toggleTheme}
             data-nm-no-translate
-            className="nm-theme-toggle flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-lg text-white transition hover:border-white/20 hover:bg-white/[0.09]"
+            className="nm-theme-toggle hidden h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-lg text-white transition hover:border-white/20 hover:bg-white/[0.09] lg:flex"
             aria-label={
               language === "en"
                 ? theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
@@ -1335,7 +1344,7 @@ function Topbar({
             type="button"
             onClick={toggleLanguage}
             data-nm-no-translate
-            className="flex h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:border-white/20 hover:bg-white/[0.09]"
+            className="hidden h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:border-white/20 hover:bg-white/[0.09] lg:flex"
             aria-label={language === "es" ? "Cambiar a inglés" : "Switch to Spanish"}
             title={language === "es" ? "English" : "Español"}
           >
@@ -1358,13 +1367,13 @@ function Topbar({
   );
 }
 
-function MobileMenuDrawer({ open, closing, active, setActive, data, closeMenu }) {
+function MobileMenuDrawer({ open, closing, active, setActive, data, closeMenu, theme, toggleTheme, language, toggleLanguage }) {
   if (!open) return null;
 
   return (
     <div className={`fixed inset-0 z-[120] bg-black/45 backdrop-blur-xl lg:hidden ${closing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onClick={closeMenu}>
       <aside
-        className={`min-h-screen h-dvh w-[min(20rem,86vw)] overflow-y-auto border-r border-white/10 bg-zinc-950 p-5 shadow-2xl shadow-black/80 ${closing ? "nm-menu-drawer-out" : "nm-menu-drawer-in"}`}
+        className={`flex min-h-screen h-dvh w-[min(20rem,86vw)] flex-col overflow-y-auto border-r border-white/10 bg-zinc-950 p-5 shadow-2xl shadow-black/80 ${closing ? "nm-menu-drawer-out" : "nm-menu-drawer-in"}`}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-7 flex items-center justify-between gap-3">
@@ -1396,6 +1405,34 @@ function MobileMenuDrawer({ open, closing, active, setActive, data, closeMenu })
             </button>
           ))}
         </nav>
+        <div className="mt-auto border-t border-white/10 pt-4">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              data-nm-no-translate
+              className="nm-theme-toggle flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-lg text-white transition hover:border-white/20 hover:bg-white/[0.09]"
+              aria-label={
+                language === "en"
+                  ? theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+                  : theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"
+              }
+              title={theme === "dark" ? "Light" : "Dark"}
+            >
+              <span key={theme} className="nm-theme-icon">{theme === "dark" ? "☀" : "☾"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              data-nm-no-translate
+              className="flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:border-white/20 hover:bg-white/[0.09]"
+              aria-label={language === "es" ? "Cambiar a inglés" : "Switch to Spanish"}
+              title={language === "es" ? "English" : "Español"}
+            >
+              {language === "es" ? "ES" : "EN"}
+            </button>
+          </div>
+        </div>
       </aside>
     </div>
   );
@@ -1871,7 +1908,7 @@ function Budgets({ data, setData, search }) {
   const [page, setPage] = useState(1);
   const [internalSearch, setInternalSearch] = useState("");
   const [sort, setSort] = useState("recent");
-  const [form, setForm] = useState({ client: data.clients[0]?.name || "", service: "", amount: "", observations: "" });
+  const [form, setForm] = useState({ client: "", service: "", amount: "", observations: "" });
   const perPage = 8;
   const filtered = data.budgets
     .filter((b) =>
@@ -1897,7 +1934,7 @@ function Budgets({ data, setData, search }) {
 
   function reset() {
     setEditing(null);
-    setForm({ client: data.clients[0]?.name || "", service: "", amount: "", observations: "" });
+    setForm({ client: "", service: "", amount: "", observations: "" });
   }
 
   function submit(e) {
@@ -2074,7 +2111,7 @@ function Orders({ data, setData, search }) {
   const [showServices, setShowServices] = useState(false);
   const [saveService, setSaveService] = useState(false);
   const [includeSuggestedPrice, setIncludeSuggestedPrice] = useState(false);
-  const [form, setForm] = useState({ client: data.clients[0]?.name || "", service: "", total: "", paidAmount: "", observations: "", status: "Pendiente", payment: "Pendiente" });
+  const [form, setForm] = useState({ client: "", service: "", total: "", paidAmount: "", observations: "", status: "Pendiente", payment: "Pendiente" });
   const filtered = data.orders.filter((o) => [o.id, o.client, o.service, o.status, o.payment, o.observations].join(" ").toLowerCase().includes(search.toLowerCase()));
 
   function reset() {
@@ -2082,7 +2119,7 @@ function Orders({ data, setData, search }) {
     setSaveService(false);
     setIncludeSuggestedPrice(false);
     setShowServices(false);
-    setForm({ client: data.clients[0]?.name || "", service: "", total: "", paidAmount: "", observations: "", status: "Pendiente", payment: "Pendiente" });
+    setForm({ client: "", service: "", total: "", paidAmount: "", observations: "", status: "Pendiente", payment: "Pendiente" });
   }
 
   function saveFrequentServiceIfNeeded(nextData, serviceName, price) {
@@ -2266,6 +2303,52 @@ function History({ data, search }) {
   const filters = ["Todo", "Sistema", "Cliente", "Presupuesto", "Orden"];
   const items = data.history.filter((h) => (filter === "Todo" || h.type === filter) && [h.type, h.title, h.description].join(" ").toLowerCase().includes(search.toLowerCase()));
   return <div className="space-y-6"><PageHeader label="Historial general" title="Actividad del sistema" text="Registro filtrable de acciones importantes." /><Panel className="overflow-hidden"><div className="flex flex-wrap gap-2 border-b border-white/10 p-5">{filters.map((f) => <button key={f} onClick={() => setFilter(f)} className={`rounded-full border px-3 py-1.5 text-xs ${filter === f ? "border-white/20 bg-white/[0.1] text-white" : "border-white/10 bg-white/[0.035] text-zinc-500"}`}>{f}</button>)}</div>{items.length === 0 ? <EmptyState title="Sin actividad" text="Las acciones aparecerán acá." /> : <div className="divide-y divide-white/10">{items.map((item) => <div key={item.id} className="flex flex-col gap-3 p-5 hover:bg-white/[0.035] md:flex-row md:items-center md:justify-between"><div><div className="flex items-center gap-3"><Badge>{item.type}</Badge><h3 className="font-medium text-white">{item.title}</h3></div><p className="mt-2 text-sm text-zinc-500">{item.description}</p></div><p className="text-sm text-zinc-600">{dateTimeLabel(item.date)}</p></div>)}</div>}</Panel></div>;
+}
+
+function GlobalSearchResults({ data, search, setActive, clearSearch }) {
+  const query = search.trim().toLowerCase();
+  const clients = data.clients.filter((client) => [client.name, client.phone, client.email, client.notes].join(" ").toLowerCase().includes(query)).slice(0, 8);
+  const budgets = data.budgets.filter((budget) => [budget.id, budget.client, budget.service, budget.status, budget.observations].join(" ").toLowerCase().includes(query)).slice(0, 8);
+  const orders = data.orders.filter((order) => [order.id, order.client, order.service, order.status, order.payment, order.observations].join(" ").toLowerCase().includes(query)).slice(0, 8);
+  const history = data.history.filter((item) => [item.type, item.title, item.description].join(" ").toLowerCase().includes(query)).slice(0, 8);
+  const total = clients.length + budgets.length + orders.length + history.length;
+
+  function openSection(section) {
+    setActive(section);
+    clearSearch();
+  }
+
+  function ResultGroup({ title, section, children, empty }) {
+    return (
+      <Panel className="overflow-hidden">
+        <div className="flex items-center justify-between border-b border-white/10 p-4 sm:p-5">
+          <h3 className="text-xl font-semibold text-white">{title}</h3>
+          <SecondaryButton onClick={() => openSection(section)}>Ver sección</SecondaryButton>
+        </div>
+        {empty ? <EmptyState title="Sin resultados" text="No hay coincidencias para esta sección." /> : <div className="divide-y divide-white/10">{children}</div>}
+      </Panel>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader label="Búsqueda" title="Resultados globales" text={`${total} coincidencias para "${search.trim()}".`} />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <ResultGroup title="Clientes" section="clients" empty={clients.length === 0}>
+          {clients.map((client) => <button key={client.id} onClick={() => openSection("clients")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{client.name}</p><p className="mt-1 text-sm text-zinc-500">{[client.phone, client.email].filter(Boolean).join(" · ") || client.id}</p></button>)}
+        </ResultGroup>
+        <ResultGroup title="Presupuestos" section="budgets" empty={budgets.length === 0}>
+          {budgets.map((budget) => <button key={budget.id} onClick={() => openSection("budgets")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-mono text-sm text-zinc-300">{budget.id}</p><p className="mt-1 font-medium text-white">{budget.client}</p><p className="mt-1 text-sm text-zinc-500">{budget.service} · {currency(budget.amount)}</p></button>)}
+        </ResultGroup>
+        <ResultGroup title="Órdenes" section="orders" empty={orders.length === 0}>
+          {orders.map((order) => <button key={order.id} onClick={() => openSection("orders")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-mono text-sm text-zinc-300">{order.id}</p><p className="mt-1 font-medium text-white">{order.client}</p><p className="mt-1 text-sm text-zinc-500">{order.service} · {currency(order.total)}</p></button>)}
+        </ResultGroup>
+        <ResultGroup title="Historial" section="history" empty={history.length === 0}>
+          {history.map((item) => <button key={item.id} onClick={() => openSection("history")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><div className="flex items-center gap-3"><Badge>{item.type}</Badge><p className="font-medium text-white">{item.title}</p></div><p className="mt-2 text-sm text-zinc-500">{item.description}</p></button>)}
+        </ResultGroup>
+      </div>
+    </div>
+  );
 }
 
 function Settings({ data, setData, account, exportData, resetData }) {
@@ -2511,6 +2594,7 @@ function AppShell({ account, initialData, onLogout }) {
   const exportData = useCallback(() => { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `nexo-management-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }, [data]);
   const resetData = useCallback(async () => { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory(createEmptyData({ profile: data.profile, business: data.business }), "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }, [data.business, data.profile]);
   const content = useMemo(() => {
+    if (search.trim()) return <GlobalSearchResults data={data} search={search} setActive={setActive} clearSearch={() => setSearch("")} />;
     if (active === "dashboard") return <Dashboard data={data} setData={setData} />;
     if (active === "clients") return <Clients data={data} setData={setData} search={search} />;
     if (active === "budgets") return <Budgets data={data} setData={setData} search={search} />;
@@ -2518,8 +2602,10 @@ function AppShell({ account, initialData, onLogout }) {
     if (active === "monthly") return <Monthly data={data} />;
     if (active === "history") return <History data={data} search={search} />;
     return <Settings data={data} setData={setData} account={account} exportData={exportData} resetData={resetData} />;
-  }, [active, data, search, account, exportData, resetData]);
-  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><MobileMenuDrawer open={menuOpen} closing={menuClosing} active={active} setActive={setActive} data={data} closeMenu={closeMenu} /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} account={account} data={data} setActive={setActive} onLogout={onLogout} theme={theme} toggleTheme={() => setTheme((value) => value === "dark" ? "light" : "dark")} language={language} toggleLanguage={() => setLanguage((value) => value === "es" ? "en" : "es")} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
+  }, [active, data, search, setActive, account, exportData, resetData]);
+  const toggleTheme = () => setTheme((value) => value === "dark" ? "light" : "dark");
+  const toggleLanguage = () => setLanguage((value) => value === "es" ? "en" : "es");
+  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><MobileMenuDrawer open={menuOpen} closing={menuClosing} active={active} setActive={setActive} data={data} closeMenu={closeMenu} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} account={account} data={data} setActive={setActive} onLogout={onLogout} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
 }
 
 export default function App() {
