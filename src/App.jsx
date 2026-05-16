@@ -1332,6 +1332,95 @@ function AuthScreen({ onLogin }) {
     onLogin(account, data);
   }
 
+  const finishProviderLogin = useCallback(async (result, providerName) => {
+    const label = providerName === "apple" ? "Apple" : "Google";
+    const user = result.user;
+    const email = user.email?.toLowerCase();
+    if (!email) return notify(`No se pudo obtener el email de ${label}.`);
+
+    const accounts = readJSON(ACCOUNTS_KEY, []);
+    let account = accounts.find((item) => item.email === email);
+    const cloudWorkspace = await loadCloudWorkspace(email);
+    let data = cloudWorkspace?.data || readJSON(dataKey(email), null);
+
+    if (!account) {
+      account = cloudWorkspace?.account;
+    }
+
+    if (!account) {
+      const parts = (user.displayName || `Usuario ${label}`).split(" ");
+      account = {
+        name: toTitleCase(parts[0] || "Usuario"),
+        surname: toTitleCase(parts.slice(1).join(" ") || label),
+        taxId: "",
+        phone: "",
+        email,
+        password: `${providerName}-auth`,
+        provider: providerName,
+        createdAt: new Date().toISOString(),
+      };
+
+      data = createEmptyData({
+        profile: {
+          name: account.name,
+          surname: account.surname,
+          taxId: "",
+          phone: "",
+          email,
+        },
+        history: [
+          {
+            id: createId("HIS"),
+            type: "Sistema",
+            title: `Cuenta creada con ${label}`,
+            description: `Se creó el espacio de trabajo usando inicio de sesión con ${label}.`,
+            date: new Date().toISOString(),
+          },
+        ],
+      });
+
+      writeJSON(ACCOUNTS_KEY, [account, ...accounts]);
+    } else if (!accounts.some((item) => item.email === email)) {
+      writeJSON(ACCOUNTS_KEY, [account, ...accounts]);
+    }
+
+    data = normalizeStoredData(data || createEmptyData(), account);
+    writeJSON(dataKey(email), data);
+    await saveCloudWorkspace(email, account, data);
+
+    writeJSON(SESSION_KEY, { email });
+    notify(`Sesión iniciada con ${label}.`);
+    onLogin(account, data || emptyData);
+  }, [onLogin]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function completeRedirectLogin() {
+      try {
+        const [{ auth }, { getRedirectResult, OAuthProvider, GoogleAuthProvider }] = await Promise.all([
+          import("./firebase"),
+          import("firebase/auth"),
+        ]);
+        const result = await getRedirectResult(auth);
+        if (!result || cancelled) return;
+        const providerId =
+          OAuthProvider.credentialFromResult(result)?.providerId ||
+          GoogleAuthProvider.credentialFromResult(result)?.providerId ||
+          result.providerId;
+        await finishProviderLogin(result, providerId === "apple.com" ? "apple" : "google");
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Error OAuth redirect:", error);
+          notify(error.code || error.message || "No se pudo completar el inicio de sesión.");
+        }
+      }
+    }
+    completeRedirectLogin();
+    return () => {
+      cancelled = true;
+    };
+  }, [finishProviderLogin]);
+
   async function loginWithProvider(providerName) {
     try {
       const [{ auth, googleProvider, appleProvider }, { signInWithPopup }] = await Promise.all([
@@ -1340,66 +1429,26 @@ function AuthScreen({ onLogin }) {
       ]);
 
       const provider = providerName === "apple" ? appleProvider : googleProvider;
-      const label = providerName === "apple" ? "Apple" : "Google";
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      const email = user.email?.toLowerCase();
-      if (!email) return notify(`No se pudo obtener el email de ${label}.`);
-
-      const accounts = readJSON(ACCOUNTS_KEY, []);
-      let account = accounts.find((item) => item.email === email);
-      const cloudWorkspace = await loadCloudWorkspace(email);
-      let data = cloudWorkspace?.data || readJSON(dataKey(email), null);
-
-      if (!account) {
-        account = cloudWorkspace?.account;
-      }
-
-      if (!account) {
-        const parts = (user.displayName || `Usuario ${label}`).split(" ");
-        account = {
-          name: toTitleCase(parts[0] || "Usuario"),
-          surname: toTitleCase(parts.slice(1).join(" ") || label),
-          taxId: "",
-          phone: "",
-          email,
-          password: `${providerName}-auth`,
-          provider: providerName,
-          createdAt: new Date().toISOString(),
-        };
-
-        data = createEmptyData({
-          profile: {
-            name: account.name,
-            surname: account.surname,
-            taxId: "",
-            phone: "",
-            email,
-          },
-          history: [
-            {
-              id: createId("HIS"),
-              type: "Sistema",
-              title: `Cuenta creada con ${label}`,
-              description: `Se creó el espacio de trabajo usando inicio de sesión con ${label}.`,
-              date: new Date().toISOString(),
-            },
-          ],
-        });
-
-        writeJSON(ACCOUNTS_KEY, [account, ...accounts]);
-      } else if (!accounts.some((item) => item.email === email)) {
-        writeJSON(ACCOUNTS_KEY, [account, ...accounts]);
-      }
-
-      data = normalizeStoredData(data || createEmptyData(), account);
-      writeJSON(dataKey(email), data);
-      await saveCloudWorkspace(email, account, data);
-
-      writeJSON(SESSION_KEY, { email });
-      notify(`Sesión iniciada con ${label}.`);
-      onLogin(account, data || emptyData);
+      await finishProviderLogin(result, providerName);
     } catch (error) {
+      const shouldRedirect = ["auth/popup-blocked", "auth/popup-closed-by-user", "auth/cancelled-popup-request"].includes(error.code);
+      if (providerName === "apple" || shouldRedirect) {
+        try {
+          const [{ auth, googleProvider, appleProvider }, { signInWithRedirect }] = await Promise.all([
+            import("./firebase"),
+            import("firebase/auth"),
+          ]);
+          const provider = providerName === "apple" ? appleProvider : googleProvider;
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectError) {
+          console.error(`Error ${providerName} redirect:`, redirectError);
+          notify(redirectError.code || redirectError.message || `Error al iniciar sesión con ${providerName === "apple" ? "Apple" : "Google"}.`);
+          return;
+        }
+      }
+
       console.error(`Error ${providerName} Auth:`, error);
       notify(error.code || error.message || `Error al iniciar sesión con ${providerName === "apple" ? "Apple" : "Google"}.`);
     }
