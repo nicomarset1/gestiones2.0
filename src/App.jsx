@@ -82,6 +82,8 @@ const EN_TRANSLATIONS = {
   "Nombre del negocio": "Business name",
   "Contraseña": "Password",
   "Continuar con Google": "Continue with Google",
+  "Continuar con Apple": "Continue with Apple",
+  "Entrar como anónimo": "Enter as guest",
   "No tengo cuenta, crear una": "I do not have an account, create one",
   "Ya tengo cuenta, iniciar sesión": "I already have an account, sign in",
   "Solo números: 8 a 15 dígitos": "Numbers only: 8 to 15 digits",
@@ -114,7 +116,6 @@ const EN_TRANSLATIONS = {
   "Pagos completados": "Completed payments",
   "Pendiente": "Pending",
   "Saldo por cobrar": "Outstanding balance",
-  "Acciones prioritarias": "Priority actions",
   "Ingresos mensuales": "Monthly revenue",
   "Evolución visual basada en órdenes reales.": "Visual trend based on real orders.",
   "Estado de cobro": "Payment status",
@@ -147,8 +148,6 @@ const EN_TRANSLATIONS = {
   "Ver registro": "View record",
   "Editar": "Edit",
   "Eliminar": "Delete",
-  "Página": "Page",
-  "de": "of",
   "Anterior": "Previous",
   "Siguiente": "Next",
   "Servicio": "Service",
@@ -272,6 +271,16 @@ const EN_TRANSLATIONS = {
   "Configuración actualizada": "Settings updated",
   "Datos exportados": "Data exported",
   "Datos restaurados": "Data restored",
+  "Cuenta creada con Google": "Account created with Google",
+  "Se creó el espacio de trabajo usando inicio de sesión con Google.": "The workspace was created using Google sign-in.",
+  "Cuenta creada con Apple": "Account created with Apple",
+  "Se creó el espacio de trabajo usando inicio de sesión con Apple.": "The workspace was created using Apple sign-in.",
+  "Sesión anónima creada": "Guest session created",
+  "Se cargaron datos demo para visualizar la aplicación.": "Demo data was loaded to preview the application.",
+  "Clientes demo cargados": "Demo clients loaded",
+  "Clientes anónimos disponibles para recorrer el sistema.": "Guest clients are available to explore the system.",
+  "Órdenes demo cargadas": "Demo orders loaded",
+  "Órdenes anónimas con estados de pago variados.": "Guest orders with varied payment statuses.",
   "Servicio frecuente actualizado": "Frequent service updated",
   "Servicio frecuente creado": "Frequent service created",
   "Servicio frecuente eliminado": "Frequent service deleted",
@@ -513,6 +522,139 @@ async function saveCloudWorkspace(email, account, data) {
 
 function dataKey(email) {
   return `${APP_KEY}:data:${email}`;
+}
+
+function demoDate(daysAgo = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  return date.toISOString().slice(0, 10);
+}
+
+function createAnonymousDemoData(email = "demo@anonymous.local") {
+  return createEmptyData({
+    profile: {
+      name: "Usuario",
+      surname: "Anónimo",
+      email,
+    },
+    business: {
+      name: "Negocio Demo",
+      category: "Servicios generales",
+      address: "Dirección demo 123",
+      cuit: "00000000000",
+    },
+    clients: [
+      {
+        id: "CLI-DEMO-001",
+        name: "Cliente Anónimo Norte",
+        phone: "1122334455",
+        email: "cliente.norte@demo.com",
+        notes: "Cliente demo para visualizar órdenes activas.",
+        lastContact: demoDate(2),
+      },
+      {
+        id: "CLI-DEMO-002",
+        name: "Cliente Anónimo Centro",
+        phone: "1144556677",
+        email: "cliente.centro@demo.com",
+        notes: "Cliente demo con presupuesto pendiente.",
+        lastContact: demoDate(5),
+      },
+      {
+        id: "CLI-DEMO-003",
+        name: "Cliente Anónimo Sur",
+        phone: "1166778899",
+        email: "cliente.sur@demo.com",
+        notes: "Cliente demo con pagos parciales.",
+        lastContact: demoDate(9),
+      },
+    ],
+    budgets: [
+      {
+        id: "PRE-DEMO-001",
+        client: "Cliente Anónimo Centro",
+        service: "Presupuesto demo de mantenimiento",
+        amount: 145000,
+        observations: "Ejemplo de presupuesto pendiente para mostrar el flujo.",
+        status: "Pendiente",
+        date: demoDate(1),
+      },
+      {
+        id: "PRE-DEMO-002",
+        client: "Cliente Anónimo Norte",
+        service: "Instalación demo",
+        amount: 220000,
+        observations: "Ejemplo ya convertido en orden.",
+        status: "Convertido",
+        convertedOrderId: "ORD-DEMO-001",
+        date: demoDate(8),
+      },
+    ],
+    orders: [
+      {
+        id: "ORD-DEMO-001",
+        client: "Cliente Anónimo Norte",
+        service: "Instalación demo",
+        total: 220000,
+        paidAmount: 220000,
+        observations: "Orden demo terminada y pagada.",
+        status: "Terminado",
+        payment: "Pagado",
+        date: demoDate(4),
+        sourceBudgetId: "PRE-DEMO-002",
+      },
+      {
+        id: "ORD-DEMO-002",
+        client: "Cliente Anónimo Sur",
+        service: "Reparación demo",
+        total: 180000,
+        paidAmount: 80000,
+        observations: "Orden demo con pago parcial.",
+        status: "Pendiente",
+        payment: "Pago parcial",
+        date: demoDate(3),
+      },
+      {
+        id: "ORD-DEMO-003",
+        client: "Cliente Anónimo Centro",
+        service: "Servicio mensual demo",
+        total: 95000,
+        paidAmount: 0,
+        observations: "Orden demo pendiente para visualizar alertas.",
+        status: "Pendiente",
+        payment: "Pendiente",
+        date: demoDate(10),
+      },
+    ],
+    frequentServices: [
+      { id: "SER-DEMO-001", name: "Mantenimiento demo", suggestedPrice: 95000 },
+      { id: "SER-DEMO-002", name: "Instalación demo", suggestedPrice: 220000 },
+      { id: "SER-DEMO-003", name: "Reparación demo", suggestedPrice: 180000 },
+    ],
+    history: [
+      {
+        id: "HIS-DEMO-001",
+        type: "Sistema",
+        title: "Sesión anónima creada",
+        description: "Se cargaron datos demo para visualizar la aplicación.",
+        date: new Date().toISOString(),
+      },
+      {
+        id: "HIS-DEMO-002",
+        type: "Cliente",
+        title: "Clientes demo cargados",
+        description: "Clientes anónimos disponibles para recorrer el sistema.",
+        date: new Date().toISOString(),
+      },
+      {
+        id: "HIS-DEMO-003",
+        type: "Orden",
+        title: "Órdenes demo cargadas",
+        description: "Órdenes anónimas con estados de pago variados.",
+        date: new Date().toISOString(),
+      },
+    ],
+  });
 }
 
 function createId(prefix) {
@@ -1088,6 +1230,17 @@ function AuthScreen({ onLogin }) {
         return;
       }
 
+      try {
+        const [{ auth }, { createUserWithEmailAndPassword }] = await Promise.all([
+          import("./firebase"),
+          import("firebase/auth"),
+        ]);
+        await createUserWithEmailAndPassword(auth, email, password);
+      } catch (error) {
+        setError(error.code || error.message || "No se pudo crear la cuenta.");
+        return;
+      }
+
       const account = {
         name: toTitleCase(form.name),
         surname: toTitleCase(form.surname),
@@ -1130,6 +1283,33 @@ function AuthScreen({ onLogin }) {
 
     let account = accounts.find((item) => item.email === email && item.password === password);
     let cloudWorkspace = null;
+    try {
+      const [{ auth }, { signInWithEmailAndPassword }] = await Promise.all([
+        import("./firebase"),
+        import("firebase/auth"),
+      ]);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const user = result.user;
+      cloudWorkspace = await loadCloudWorkspace(email);
+      account =
+        account ||
+        cloudWorkspace?.account || {
+          name: toTitleCase(user.displayName?.split(" ")[0] || "Usuario"),
+          surname: toTitleCase(user.displayName?.split(" ").slice(1).join(" ") || ""),
+          taxId: "",
+          phone: "",
+          email,
+          password,
+          provider: "password",
+          createdAt: new Date().toISOString(),
+        };
+      if (!accounts.some((item) => item.email === email)) {
+        accounts = [account, ...accounts];
+        writeJSON(ACCOUNTS_KEY, accounts);
+      }
+    } catch {
+      // Fallback for workspaces created before Firebase email/password auth was enabled.
+    }
     if (!account) {
       cloudWorkspace = await loadCloudWorkspace(email);
       if (cloudWorkspace?.account?.password === password) {
@@ -1152,17 +1332,19 @@ function AuthScreen({ onLogin }) {
     onLogin(account, data);
   }
 
-  async function loginWithGoogle() {
+  async function loginWithProvider(providerName) {
     try {
-      const [{ auth, googleProvider }, { signInWithPopup }] = await Promise.all([
+      const [{ auth, googleProvider, appleProvider }, { signInWithPopup }] = await Promise.all([
         import("./firebase"),
         import("firebase/auth"),
       ]);
 
-      const result = await signInWithPopup(auth, googleProvider);
+      const provider = providerName === "apple" ? appleProvider : googleProvider;
+      const label = providerName === "apple" ? "Apple" : "Google";
+      const result = await signInWithPopup(auth, provider);
       const user = result.user;
       const email = user.email?.toLowerCase();
-      if (!email) return notify("No se pudo obtener el email de Google.");
+      if (!email) return notify(`No se pudo obtener el email de ${label}.`);
 
       const accounts = readJSON(ACCOUNTS_KEY, []);
       let account = accounts.find((item) => item.email === email);
@@ -1174,15 +1356,15 @@ function AuthScreen({ onLogin }) {
       }
 
       if (!account) {
-        const parts = (user.displayName || "Usuario Google").split(" ");
+        const parts = (user.displayName || `Usuario ${label}`).split(" ");
         account = {
           name: toTitleCase(parts[0] || "Usuario"),
-          surname: toTitleCase(parts.slice(1).join(" ") || "Google"),
+          surname: toTitleCase(parts.slice(1).join(" ") || label),
           taxId: "",
           phone: "",
           email,
-          password: "google-auth",
-          provider: "google",
+          password: `${providerName}-auth`,
+          provider: providerName,
           createdAt: new Date().toISOString(),
         };
 
@@ -1198,8 +1380,8 @@ function AuthScreen({ onLogin }) {
             {
               id: createId("HIS"),
               type: "Sistema",
-              title: "Cuenta creada con Google",
-              description: "Se creó el espacio de trabajo usando inicio de sesión con Google.",
+              title: `Cuenta creada con ${label}`,
+              description: `Se creó el espacio de trabajo usando inicio de sesión con ${label}.`,
               date: new Date().toISOString(),
             },
           ],
@@ -1215,12 +1397,53 @@ function AuthScreen({ onLogin }) {
       await saveCloudWorkspace(email, account, data);
 
       writeJSON(SESSION_KEY, { email });
-      notify("Sesión iniciada con Google.");
+      notify(`Sesión iniciada con ${label}.`);
       onLogin(account, data || emptyData);
     } catch (error) {
-  console.error("Error Google Auth:", error);
-  notify(error.code || error.message || "Error al iniciar sesión con Google.");
-}
+      console.error(`Error ${providerName} Auth:`, error);
+      notify(error.code || error.message || `Error al iniciar sesión con ${providerName === "apple" ? "Apple" : "Google"}.`);
+    }
+  }
+
+  function loginWithGoogle() {
+    return loginWithProvider("google");
+  }
+
+  function loginWithApple() {
+    return loginWithProvider("apple");
+  }
+
+  async function loginAnonymously() {
+    try {
+      const [{ auth }, { signInAnonymously }] = await Promise.all([
+        import("./firebase"),
+        import("firebase/auth"),
+      ]);
+      const result = await signInAnonymously(auth);
+      const uid = result.user.uid;
+      const email = `anonymous-${uid}@demo.local`;
+      const account = {
+        name: "Usuario",
+        surname: "Anónimo",
+        taxId: "",
+        phone: "",
+        email,
+        password: "anonymous-auth",
+        provider: "anonymous",
+        isAnonymous: true,
+        createdAt: new Date().toISOString(),
+      };
+      const data = createAnonymousDemoData(email);
+      const accounts = readJSON(ACCOUNTS_KEY, []);
+      writeJSON(ACCOUNTS_KEY, [account, ...accounts.filter((item) => item.email !== email)]);
+      writeJSON(dataKey(email), data);
+      writeJSON(SESSION_KEY, { email });
+      notify("Ingresaste como anónimo con datos demo.");
+      onLogin(account, data);
+    } catch (error) {
+      console.error("Error Anonymous Auth:", error);
+      notify(error.code || error.message || "Error al iniciar sesión como anónimo.");
+    }
   }
 
   return (
@@ -1256,6 +1479,22 @@ function AuthScreen({ onLogin }) {
             >
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-black">G</span>
               Continuar con Google
+            </button>
+            <button
+              type="button"
+              onClick={loginWithApple}
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-white/25 hover:bg-white/[0.08]"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-black"></span>
+              Continuar con Apple
+            </button>
+            <button
+              type="button"
+              onClick={loginAnonymously}
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/25 hover:bg-white/[0.07]"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full border border-white/20 text-[10px] font-bold text-white">AN</span>
+              Entrar como anónimo
             </button>
             <PrimaryButton type="submit" className="w-full">{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</PrimaryButton>
           </form>
@@ -2540,10 +2779,11 @@ function AppShell({ account, initialData, onLogout }) {
   const [search, setSearch] = useState("");
   const [searchFilter, setSearchFilter] = useState("all");
   const accountEmail = normalizeEmail(account.email);
+  const isAnonymousAccount = account.isAnonymous || account.provider === "anonymous";
   const [data, setData] = useState(() => normalizeStoredData(initialData, account));
   const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark");
   const [language, setLanguage] = useState(() => localStorage.getItem(LANGUAGE_KEY) === "en" ? "en" : "es");
-  const [cloudReady, setCloudReady] = useState(false);
+  const [cloudReady, setCloudReady] = useState(isAnonymousAccount);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
   useEffect(() => {
@@ -2562,6 +2802,9 @@ function AppShell({ account, initialData, onLogout }) {
     return () => observer.disconnect();
   }, [language]);
   useEffect(() => {
+    if (isAnonymousAccount) {
+      return undefined;
+    }
     let cancelled = false;
     loadCloudWorkspace(accountEmail).then((workspace) => {
       if (cancelled) return;
@@ -2573,15 +2816,16 @@ function AppShell({ account, initialData, onLogout }) {
     return () => {
       cancelled = true;
     };
-  }, [account, accountEmail]);
+  }, [account, accountEmail, isAnonymousAccount]);
   useEffect(() => { writeJSON(dataKey(accountEmail), data); }, [data, accountEmail]);
   useEffect(() => {
+    if (isAnonymousAccount) return undefined;
     if (!cloudReady) return undefined;
     const timer = window.setTimeout(() => {
       saveCloudWorkspace(accountEmail, account, data);
     }, 800);
     return () => window.clearTimeout(timer);
-  }, [account, accountEmail, cloudReady, data]);
+  }, [account, accountEmail, cloudReady, data, isAnonymousAccount]);
   useEffect(() => {
     if (!menuOpen) return undefined;
     const previousOverflow = document.body.style.overflow;
