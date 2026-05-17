@@ -1527,37 +1527,26 @@ function AuthScreen({ onLogin }) {
     }
   }
 
-  async function loginAnonymously() {
-    try {
-      const [{ auth }, { signInAnonymously }] = await Promise.all([
-        import("./firebase"),
-        import("firebase/auth"),
-      ]);
-      const result = await signInAnonymously(auth);
-      const uid = result.user.uid;
-      const email = `anonymous-${uid}@demo.local`;
-      const account = {
-        name: "Usuario",
-        surname: "Anónimo",
-        taxId: "",
-        phone: "",
-        email,
-        password: "anonymous-auth",
-        provider: "anonymous",
-        isAnonymous: true,
-        createdAt: new Date().toISOString(),
-      };
-      const data = createAnonymousDemoData(email);
-      const accounts = readJSON(ACCOUNTS_KEY, []);
-      writeJSON(ACCOUNTS_KEY, [account, ...accounts.filter((item) => item.email !== email)]);
-      writeJSON(dataKey(email), data);
-      writeJSON(SESSION_KEY, { email });
-      notify("Ingresaste como anónimo con datos demo.");
-      onLogin(account, data);
-    } catch (error) {
-      console.error("Error Anonymous Auth:", error);
-      notify(error.code || error.message || "Error al iniciar sesión como anónimo.");
-    }
+  function loginAnonymously() {
+    const email = "anonymous-demo@local.preview";
+    const account = {
+      name: "Usuario",
+      surname: "Anónimo",
+      taxId: "",
+      phone: "",
+      email,
+      password: "anonymous-local",
+      provider: "anonymous",
+      isAnonymous: true,
+      createdAt: new Date().toISOString(),
+    };
+    const data = createAnonymousDemoData(email);
+    const accounts = readJSON(ACCOUNTS_KEY, []);
+    writeJSON(ACCOUNTS_KEY, [account, ...accounts.filter((item) => item.email !== email)]);
+    writeJSON(dataKey(email), data);
+    writeJSON(SESSION_KEY, { email });
+    notify("Ingresaste como anónimo con datos demo.");
+    onLogin(account, data);
   }
 
   return (
