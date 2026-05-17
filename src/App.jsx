@@ -5,6 +5,7 @@ const ACCOUNTS_KEY = `${APP_KEY}:accounts`;
 const SESSION_KEY = `${APP_KEY}:session`;
 const THEME_KEY = `${APP_KEY}:theme`;
 const LANGUAGE_KEY = `${APP_KEY}:language`;
+const FEEDBACK_EMAIL = "nicolasmarsetg@gmail.com";
 
 const emptyData = {
   profile: {
@@ -72,6 +73,20 @@ const ORDER_OVERDUE_DAYS = 7;
 const EN_TRANSLATIONS = {
   "Sistema web de gestión operativa": "Operations management web system",
   "Centralizá clientes, presupuestos, órdenes, pagos, historial y resumen mensual desde una interfaz profesional, clara y funcional.": "Centralize clients, estimates, orders, payments, history, and monthly summaries from a professional, clear, functional interface.",
+  "Primeros pasos": "First steps",
+  "Configurá la app en pocos minutos y empezá a usarla con datos reales.": "Set up the app in a few minutes and start using it with real data.",
+  "Completá tu negocio": "Complete your business",
+  "Agregá datos para que presupuestos y órdenes salgan completos.": "Add details so estimates and orders are complete.",
+  "Ir a configuración": "Go to settings",
+  "Cargá tu primer cliente": "Load your first client",
+  "Los clientes son la base para presupuestos, órdenes y pagos.": "Clients are the base for estimates, orders, and payments.",
+  "Ir a clientes": "Go to clients",
+  "Creá un presupuesto": "Create an estimate",
+  "Armá una propuesta y dejala lista para convertirla en orden.": "Build a proposal and leave it ready to convert into an order.",
+  "Ir a presupuestos": "Go to estimates",
+  "Registrá una orden": "Register an order",
+  "Controlá estado de trabajo, cobros y saldos pendientes.": "Track work status, collections, and outstanding balances.",
+  "Ir a órdenes": "Go to orders",
   "Iniciar sesión": "Sign in",
   "Crear cuenta": "Create account",
   "Entrá a tu espacio": "Enter your workspace",
@@ -97,7 +112,7 @@ const EN_TRANSLATIONS = {
   "Quitar foto": "Remove photo",
   "Configuración inicial": "Initial setup",
   "Completá tus datos": "Complete your details",
-  "Para usar tu espacio con Google necesitamos completar los datos personales y del negocio. Estos datos se usan en órdenes, presupuestos y documentos.": "To use your Google workspace, we need to complete your personal and business details. These details are used in orders, estimates, and documents.",
+  "Para usar tu espacio necesitamos completar los datos personales y del negocio. Estos datos se usan en órdenes, presupuestos y documentos.": "To use your workspace, we need to complete your personal and business details. These details are used in orders, estimates, and documents.",
   "Guardar y entrar": "Save and enter",
   "No tengo cuenta, crear una": "I do not have an account, create one",
   "Ya tengo cuenta, iniciar sesión": "I already have an account, sign in",
@@ -119,6 +134,7 @@ const EN_TRANSLATIONS = {
   "Cambiar a inglés": "Switch to English",
   "Cambiar a español": "Switch to Spanish",
   "Cerrar sesión": "Sign out",
+  "Enviar feedback": "Send feedback",
   "Confirmación": "Confirmation",
   "¿Estás seguro?": "Are you sure?",
   "Cancelar": "Cancel",
@@ -250,7 +266,8 @@ const EN_TRANSLATIONS = {
   "Primero cargá un cliente": "Load a client first",
   "Los presupuestos necesitan un cliente asociado.": "Estimates need an associated client.",
   "Crear presupuesto": "Create estimate",
-  "Cuando crees presupuestos, van a aparecer en esta lista.": "When you create estimates, they will appear in this list.",
+        "Cuando crees presupuestos, van a aparecer en esta lista.": "When you create estimates, they will appear in this list.",
+  "Cuando crees presupuestos, van a aparecer en esta lista. Usá el formulario de la izquierda para cargar el primero.": "When you create estimates, they will appear in this list. Use the form on the left to load the first one.",
   "Observaciones": "Notes",
   "Servicios frecuentes": "Frequent services",
   "Órdenes y pagos": "Orders and payments",
@@ -260,6 +277,7 @@ const EN_TRANSLATIONS = {
   "Crear orden": "Create order",
   "Sin órdenes cargadas": "No orders loaded",
   "Cuando crees órdenes, van a aparecer en esta tabla.": "When you create orders, they will appear in this table.",
+  "Cuando crees órdenes, van a aparecer en esta tabla. Usá el formulario superior para registrar el primer trabajo.": "When you create orders, they will appear in this table. Use the top form to register the first job.",
   "Monto pagado": "Paid amount",
   "Marcar como terminado": "Mark as finished",
   "Marcar como pagado": "Mark as paid",
@@ -724,6 +742,22 @@ function isWorkspaceProfileComplete(data) {
   );
 }
 
+function feedbackHref(account, data) {
+  const email = data?.profile?.email || account?.email || "";
+  const subject = encodeURIComponent("Feedback Nexo Management");
+  const body = encodeURIComponent(
+    [
+      "Hola, quiero dejar feedback sobre Nexo Management.",
+      "",
+      `Cuenta: ${email || "sin email"}`,
+      `Negocio: ${data?.business?.name || "sin negocio configurado"}`,
+      "",
+      "Comentario:",
+    ].join("\n")
+  );
+  return `mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`;
+}
+
 function isValidPhone(phone) {
   const digits = onlyDigits(phone);
   return digits.length >= 8 && digits.length <= 15;
@@ -1085,12 +1119,13 @@ function SecondaryButton({ children, type = "button", onClick, className = "" })
   );
 }
 
-function EmptyState({ title, text }) {
+function EmptyState({ title, text, children }) {
   return (
     <div className="p-10 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] font-mono text-zinc-500">—</div>
       <h3 className="mt-5 text-xl font-semibold text-white">{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">{text}</p>
+      {children && <div className="mt-5 flex flex-wrap justify-center gap-3">{children}</div>}
     </div>
   );
 }
@@ -1803,6 +1838,7 @@ function Topbar({
               <div className="absolute right-0 top-14 w-[min(18rem,calc(100vw-2rem))] rounded-3xl border border-white/10 bg-zinc-950 p-3 shadow-2xl shadow-black/60">
                 <div className="border-b border-white/10 p-3"><p className="font-medium text-white">{fullName}</p><p className="mt-1 text-sm text-zinc-500">{data.profile.email || account.email}</p></div>
                 <button onClick={() => { setActive("settings"); setOpen(false); }} className="mt-3 w-full rounded-2xl px-3 py-2 text-left text-sm text-zinc-400 hover:bg-white/[0.06] hover:text-white">Configuración</button>
+                <a href={feedbackHref(account, data)} className="block w-full rounded-2xl px-3 py-2 text-left text-sm text-zinc-400 hover:bg-white/[0.06] hover:text-white">Enviar feedback</a>
                 <button onClick={onLogout} className="w-full rounded-2xl px-3 py-2 text-left text-sm text-red-300 hover:bg-red-400/10">Cerrar sesión</button>
               </div>
             )}
@@ -2070,7 +2106,7 @@ function DashboardDetailModal({ type, data, orders, onClose }) {
   );
 }
 
-function Dashboard({ data, setData }) {
+function Dashboard({ data, setData, setActive }) {
   const [detail, setDetail] = useState(null);
   const currentMonth = new Date().toISOString().slice(0, 7);
   const monthLabel = currentMonthLabel();
@@ -2090,6 +2126,7 @@ function Dashboard({ data, setData }) {
     <div className="space-y-6">
       <DashboardDetailModal type={detail} data={data} orders={data.orders} onClose={() => setDetail(null)} />
       <PageHeader label="Dashboard" title="Resumen general" text={`Vista mensual del estado operativo, financiero y comercial de ${monthLabel}.`} />
+      <OnboardingChecklist data={data} setActive={setActive} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <button onClick={() => setDetail("clients")} className="h-full w-full text-left"><StatCard label="Clientes" value={data.clients.length} meta="Base comercial" icon="CL" /></button>
         <button onClick={() => setDetail("pendingOrders")} className="h-full w-full text-left"><StatCard label="Órdenes pendientes" value={pendingOrders} meta="Trabajos pendientes del mes" icon="OR" /></button>
@@ -2135,6 +2172,67 @@ function Dashboard({ data, setData }) {
 
 function PaymentLine({ label, value }) {
   return <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-2.5"><span className="text-sm text-zinc-300">{label}</span><span className="text-sm font-medium text-white">{currency(value)}</span></div>;
+}
+
+function OnboardingChecklist({ data, setActive }) {
+  const steps = [
+    {
+      title: "Completá tu negocio",
+      text: "Agregá datos para que presupuestos y órdenes salgan completos.",
+      action: "Ir a configuración",
+      target: "settings",
+      done: isWorkspaceProfileComplete(data),
+    },
+    {
+      title: "Cargá tu primer cliente",
+      text: "Los clientes son la base para presupuestos, órdenes y pagos.",
+      action: "Ir a clientes",
+      target: "clients",
+      done: data.clients.length > 0,
+    },
+    {
+      title: "Creá un presupuesto",
+      text: "Armá una propuesta y dejala lista para convertirla en orden.",
+      action: "Ir a presupuestos",
+      target: "budgets",
+      done: data.budgets.length > 0,
+    },
+    {
+      title: "Registrá una orden",
+      text: "Controlá estado de trabajo, cobros y saldos pendientes.",
+      action: "Ir a órdenes",
+      target: "orders",
+      done: data.orders.length > 0,
+    },
+  ];
+  const pending = steps.filter((step) => !step.done);
+  if (pending.length === 0) return null;
+
+  return (
+    <Panel className="overflow-hidden">
+      <div className="border-b border-white/10 p-5">
+        <p className="text-xs uppercase tracking-[0.3em] text-zinc-600">Primeros pasos</p>
+        <h2 className="mt-2 text-2xl font-semibold text-white">Configurá la app en pocos minutos y empezá a usarla con datos reales.</h2>
+      </div>
+      <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-4">
+        {steps.map((step, index) => (
+          <div key={step.title} className={`rounded-2xl border p-4 ${step.done ? "border-emerald-400/20 bg-emerald-400/10" : "border-white/10 bg-white/[0.035]"}`}>
+            <div className="mb-5 flex items-center justify-between">
+              <span className="font-mono text-sm text-zinc-500">0{index + 1}</span>
+              <Badge tone={step.done ? "green" : "neutral"}>{step.done ? "OK" : "Pendiente"}</Badge>
+            </div>
+            <h3 className="font-semibold text-white">{step.title}</h3>
+            <p className="mt-2 min-h-12 text-sm leading-6 text-zinc-500">{step.text}</p>
+            {!step.done && (
+              <button onClick={() => setActive(step.target)} className="mt-5 rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-zinc-200 transition hover:border-white/25 hover:bg-white/[0.09]">
+                {step.action}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
 }
 
 function buildMonthlyBars(orders) {
@@ -2514,7 +2612,7 @@ function Budgets({ data, setData, search }) {
 
         <Panel className="overflow-hidden">
           <div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Presupuestos registrados</h3><p className="mt-1 text-sm text-zinc-500">Lista compacta de presupuestos generados.</p><div className="mt-5 grid gap-3 md:grid-cols-[1fr_220px]"><input value={internalSearch} onChange={(e) => { setInternalSearch(e.target.value); setPage(1); }} placeholder="Buscar presupuesto, cliente o servicio..." className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-700 focus:border-white/25" /><select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none"><option className="bg-zinc-950" value="recent">Más reciente</option><option className="bg-zinc-950" value="oldest">Más antiguo</option><option className="bg-zinc-950" value="az">Alfabético</option></select></div></div>
-          {filtered.length === 0 ? <EmptyState title="Sin presupuestos" text="Cuando crees presupuestos, van a aparecer en esta lista." /> : (
+          {filtered.length === 0 ? <EmptyState title="Sin presupuestos" text="Cuando crees presupuestos, van a aparecer en esta lista. Usá el formulario de la izquierda para cargar el primero." /> : (
             <>
               <div className="grid gap-3 p-4 md:hidden">{visible.map((b) => <div key={b.id} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-mono text-sm text-zinc-300">{b.id}</p><p className="mt-1 text-xs text-zinc-600">{dateLabel(b.date)}</p></div><Badge tone={statusTone(b.status || "Pendiente")}>{BUDGET_STATUS.includes(b.status) ? b.status : "Pendiente"}</Badge></div><div className="mt-4 grid gap-3"><MobileField label="Cliente" value={b.client} /><MobileField label="Servicio" value={b.service} /><MobileField label="Importe">{currency(b.amount)}</MobileField></div><div className="mt-4 grid grid-cols-2 gap-2"><SecondaryButton onClick={() => { setEditing(b.id); setForm({ client: b.client, service: b.service, amount: formatARSInput(b.amount), observations: b.observations || "" }); }} className="px-3 py-2.5 text-xs">Editar</SecondaryButton><SecondaryButton onClick={() => convertToOrder(b)} className="px-3 py-2.5 text-xs">A orden</SecondaryButton><SecondaryButton onClick={() => openDocumentWindow({ type: "Presupuesto", id: b.id, data, clientName: b.client, service: b.service, observations: b.observations, amount: b.amount, paymentStatus: "Pendiente" })} className="px-3 py-2.5 text-xs">Abrir</SecondaryButton><SecondaryButton onClick={() => remove(b.id)} className="px-3 py-2.5 text-xs">Eliminar</SecondaryButton></div></div>)}</div><div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[900px] text-left text-sm"><thead className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-zinc-600"><tr><th className="px-4 py-2.5">Presupuesto</th><th className="px-4 py-2.5">Cliente</th><th className="px-4 py-2.5">Servicio</th><th className="px-4 py-2.5">Estado</th><th className="px-4 py-2.5">Importe</th><th className="px-4 py-2.5">Acciones</th></tr></thead><tbody className="divide-y divide-white/10">{visible.map((b) => <tr key={b.id} className="transition hover:bg-white/[0.035]"><td className="px-4 py-2.5 font-mono text-zinc-300">{b.id}<p className="mt-1 text-xs text-zinc-600">{dateLabel(b.date)}</p></td><td className="px-4 py-2.5 font-medium text-white">{b.client}</td><td className="px-4 py-2.5 text-zinc-500">{b.service}</td><td className="px-4 py-2.5"><Badge tone={statusTone(b.status || "Pendiente")}>{BUDGET_STATUS.includes(b.status) ? b.status : "Pendiente"}</Badge></td><td className="px-4 py-2.5 font-medium text-zinc-200">{currency(b.amount)}</td><td className="px-4 py-2.5"><div className="flex flex-wrap gap-2"><SecondaryButton onClick={() => { setEditing(b.id); setForm({ client: b.client, service: b.service, amount: formatARSInput(b.amount), observations: b.observations || "" }); }}>Editar</SecondaryButton><SecondaryButton onClick={() => convertToOrder(b)}>Convertir a orden</SecondaryButton><SecondaryButton onClick={() => openDocumentWindow({ type: "Presupuesto", id: b.id, data, clientName: b.client, service: b.service, observations: b.observations, amount: b.amount, paymentStatus: "Pendiente" })}>Abrir presupuesto</SecondaryButton><SecondaryButton onClick={() => remove(b.id)}>Eliminar</SecondaryButton></div></td></tr>)}</tbody></table></div>
               <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-3 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:px-5"><span>Página {page} de {totalPages}</span><div className="flex gap-2"><SecondaryButton onClick={() => setPage(Math.max(page - 1, 1))}>Anterior</SecondaryButton><SecondaryButton onClick={() => setPage(Math.min(page + 1, totalPages))}>Siguiente</SecondaryButton></div></div>
@@ -2707,7 +2805,7 @@ function OrdersTable({ orders, compact = false, data, onEdit, onDelete, onFinish
   return (
     <Panel className="overflow-hidden">
       <div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Órdenes recientes</h3><p className="mt-1 text-sm text-zinc-500">Control operativo y estado de cobro.</p>{!compact && <div className="mt-5 grid gap-3 md:grid-cols-[1fr_220px]"><input value={internalSearch} onChange={(e) => { setInternalSearch(e.target.value); setPage(1); }} placeholder="Buscar orden, cliente, servicio o estado..." className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-700 focus:border-white/25" /><select value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none"><option className="bg-zinc-950" value="recent">Más reciente</option><option className="bg-zinc-950" value="oldest">Más antiguo</option><option className="bg-zinc-950" value="az">Alfabético</option></select></div>}</div>
-      {filteredOrders.length === 0 ? <EmptyState title="Sin órdenes cargadas" text="Cuando crees órdenes, van a aparecer en esta tabla." /> : (
+      {filteredOrders.length === 0 ? <EmptyState title="Sin órdenes cargadas" text="Cuando crees órdenes, van a aparecer en esta tabla. Usá el formulario superior para registrar el primer trabajo." /> : (
         <>
           <div className="grid gap-3 p-4 md:hidden">{visible.map((order) => <div key={order.id} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-mono text-sm text-zinc-300">{order.id}</p><p className="mt-1 text-xs text-zinc-600">{dateLabel(order.date)}</p></div><Badge tone={isOrderOverdue(order) ? "amber" : statusTone(order.status)}>{isOrderOverdue(order) ? "Atrasada" : order.status}</Badge></div><div className="mt-4 grid gap-3"><MobileField label="Cliente" value={order.client} />{!compact && <MobileField label="Servicio" value={order.service} />}<MobileField label="Pago"><Badge tone={statusTone(order.payment)}>{order.payment}</Badge></MobileField><div className="grid grid-cols-2 gap-3"><MobileField label="Total">{currency(order.total)}</MobileField><MobileField label="Resta">{currency(getPendingAmount(order))}</MobileField></div></div><div className="mt-4 grid grid-cols-2 gap-2">{order.status === "Pendiente" && <SecondaryButton onClick={() => onFinish?.(order.id)} className="px-3 py-2.5 text-xs">Terminar</SecondaryButton>}{order.payment !== "Pagado" && <SecondaryButton onClick={() => onPay?.(order.id)} className="px-3 py-2.5 text-xs">Pagada</SecondaryButton>}{!compact && <><SecondaryButton onClick={() => onEdit?.(order)} className="px-3 py-2.5 text-xs">Editar</SecondaryButton><SecondaryButton onClick={() => openDocumentWindow({ type: "Orden", id: order.id, data, clientName: order.client, service: order.service, observations: order.observations, amount: order.total, orderStatus: order.status, paymentStatus: order.payment, paidAmount: getPaidAmount(order) })} className="px-3 py-2.5 text-xs">Abrir</SecondaryButton><SecondaryButton onClick={() => onDelete?.(order.id)} className="col-span-2 px-3 py-2.5 text-xs">Eliminar</SecondaryButton></>}</div></div>)}</div><div className="hidden overflow-x-auto md:block"><table className="w-full min-w-[980px] text-left text-sm"><thead className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-zinc-600"><tr><th className="px-4 py-2.5">Orden</th><th className="px-4 py-2.5">Cliente</th>{!compact && <th className="px-4 py-2.5">Servicio</th>}<th className="px-4 py-2.5">Estado</th><th className="px-4 py-2.5">Pago</th><th className="px-4 py-2.5">Total</th><th className="px-4 py-2.5">Resta</th>{!compact && <th className="px-4 py-2.5">Acciones</th>}</tr></thead><tbody className="divide-y divide-white/10">{visible.map((order) => <tr key={order.id} className="transition hover:bg-white/[0.035]"><td className="px-4 py-2 font-mono text-zinc-300">{order.id}<p className="mt-1 text-xs text-zinc-600">{dateLabel(order.date)}</p></td><td className="px-4 py-2 font-medium text-white">{order.client}</td>{!compact && <td className="px-4 py-2 text-zinc-500">{order.service}</td>}<td className="px-4 py-1.5"><div className="flex items-center gap-1.5"><Badge tone={isOrderOverdue(order) ? "amber" : statusTone(order.status)}>{isOrderOverdue(order) ? "Atrasada" : order.status}</Badge>{order.status === "Pendiente" && <button onClick={() => onFinish?.(order.id)} title="Marcar como terminado" className="flex h-6 w-6 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10 text-[10px] text-emerald-300">✓</button>}</div></td><td className="px-4 py-1.5"><div className="flex items-center gap-1.5"><Badge tone={statusTone(order.payment)}>{order.payment}</Badge>{order.payment !== "Pagado" && <button onClick={() => onPay?.(order.id)} title="Marcar como pagado" className="flex h-6 w-6 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/10 text-[10px] text-emerald-300">✓</button>}</div></td><td className="px-4 py-1.5 text-sm font-medium text-zinc-200">{currency(order.total)}</td><td className="px-4 py-1.5 text-sm font-medium text-zinc-200">{currency(getPendingAmount(order))}</td>{!compact && <td className="px-4 py-1.5"><div className="flex flex-nowrap gap-1.5"><SecondaryButton onClick={() => onEdit?.(order)} className="px-2.5 py-1.5">Editar</SecondaryButton><SecondaryButton onClick={() => openDocumentWindow({ type: "Orden", id: order.id, data, clientName: order.client, service: order.service, observations: order.observations, amount: order.total, orderStatus: order.status, paymentStatus: order.payment, paidAmount: getPaidAmount(order) })} className="px-2.5 py-1.5">Abrir orden</SecondaryButton><SecondaryButton onClick={() => onDelete?.(order.id)} className="px-2.5 py-1.5">Eliminar</SecondaryButton></div></td>}</tr>)}</tbody></table></div>
           {!compact && filteredOrders.length > perPage && <div className="flex flex-col gap-3 border-t border-white/10 px-4 py-3 text-sm text-zinc-500 sm:flex-row sm:items-center sm:justify-between sm:px-5"><span>Página {page} de {totalPages}</span><div className="flex gap-2"><SecondaryButton onClick={() => setPage(Math.max(page - 1, 1))}>Anterior</SecondaryButton><SecondaryButton onClick={() => setPage(Math.min(page + 1, totalPages))}>Siguiente</SecondaryButton></div></div>}
@@ -2975,7 +3073,7 @@ function Settings({ data, setData, account, exportData, resetData }) {
   );
 }
 
-function CompleteGoogleProfile({ data, setData, account, onLogout }) {
+function CompleteProfile({ data, setData, account, onLogout }) {
   const [profile, setProfile] = useState(data.profile);
   const [business, setBusiness] = useState(data.business);
   const [error, setError] = useState("");
@@ -3043,7 +3141,7 @@ function CompleteGoogleProfile({ data, setData, account, onLogout }) {
               <p className="text-xs uppercase tracking-[0.35em] text-zinc-600">Configuración inicial</p>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl">Completá tus datos</h1>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-500">
-                Para usar tu espacio con Google necesitamos completar los datos personales y del negocio. Estos datos se usan en órdenes, presupuestos y documentos.
+                Para usar tu espacio necesitamos completar los datos personales y del negocio. Estos datos se usan en órdenes, presupuestos y documentos.
               </p>
             </div>
             <button type="button" onClick={onLogout} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-400 transition hover:border-white/25 hover:text-white">
@@ -3162,10 +3260,10 @@ function AppShell({ account, initialData, onLogout }) {
   }
   const exportData = useCallback(() => { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `nexo-management-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }, [data]);
   const resetData = useCallback(async () => { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory(createEmptyData({ profile: data.profile, business: data.business }), "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }, [data.business, data.profile]);
-  const needsGoogleProfileCompletion = account.provider === "google" && !isWorkspaceProfileComplete(data);
+  const needsProfileCompletion = account.provider !== "anonymous" && !account.isAnonymous && !isWorkspaceProfileComplete(data);
   const content = useMemo(() => {
     if (search.trim()) return <GlobalSearchResults data={data} search={search} filter={searchFilter} setActive={setActive} clearSearch={() => setSearch("")} />;
-    if (active === "dashboard") return <Dashboard data={data} setData={setData} />;
+    if (active === "dashboard") return <Dashboard data={data} setData={setData} setActive={setActive} />;
     if (active === "clients") return <Clients data={data} setData={setData} search={search} />;
     if (active === "budgets") return <Budgets data={data} setData={setData} search={search} />;
     if (active === "orders") return <Orders data={data} setData={setData} search={search} />;
@@ -3175,7 +3273,7 @@ function AppShell({ account, initialData, onLogout }) {
   }, [active, data, search, searchFilter, setActive, account, exportData, resetData]);
   const toggleTheme = () => setTheme((value) => value === "dark" ? "light" : "dark");
   const toggleLanguage = () => setLanguage((value) => value === "es" ? "en" : "es");
-  if (needsGoogleProfileCompletion) return <CompleteGoogleProfile data={data} setData={setData} account={account} onLogout={onLogout} />;
+  if (needsProfileCompletion) return <CompleteProfile data={data} setData={setData} account={account} onLogout={onLogout} />;
   return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><MobileMenuDrawer open={menuOpen} closing={menuClosing} active={active} setActive={setActive} data={data} closeMenu={closeMenu} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} searchFilter={searchFilter} setSearchFilter={setSearchFilter} menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} account={account} data={data} setActive={setActive} onLogout={onLogout} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
 }
 
