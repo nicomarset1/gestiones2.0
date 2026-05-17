@@ -21,21 +21,129 @@ const emptyData = {
     category: "",
     address: "",
     cuit: "",
+    businessType: "services",
+    enabledModules: {
+      clients: true,
+      budgets: true,
+      orders: true,
+      monthly: true,
+      products: false,
+      sales: false,
+      inventory: false,
+      expenses: false,
+      suppliers: false,
+      cash: false,
+      reports: false,
+    },
   },
   clients: [],
   budgets: [],
   orders: [],
+  products: [],
+  sales: [],
+  expenses: [],
+  suppliers: [],
+  cashSessions: [],
+  stockMovements: [],
   frequentServices: [],
   history: [],
 };
 
+const BUSINESS_PRESETS = {
+  services: {
+    label: "Servicios",
+    description: "Clientes, presupuestos, trabajos, pagos y resumen mensual.",
+    modules: {
+      clients: true,
+      budgets: true,
+      orders: true,
+      monthly: true,
+      products: false,
+      sales: false,
+      inventory: false,
+      expenses: false,
+      suppliers: false,
+      cash: false,
+      reports: false,
+    },
+  },
+  simpleSales: {
+    label: "Ventas simples",
+    description: "Ventas rapidas, clientes, gastos y reportes sin stock obligatorio.",
+    modules: {
+      clients: true,
+      budgets: false,
+      orders: false,
+      monthly: true,
+      products: true,
+      sales: true,
+      inventory: false,
+      expenses: true,
+      suppliers: false,
+      cash: false,
+      reports: true,
+    },
+  },
+  commerce: {
+    label: "Comercio con stock",
+    description: "Productos, inventario, ventas, proveedores, gastos, caja y reportes.",
+    modules: {
+      clients: true,
+      budgets: false,
+      orders: false,
+      monthly: true,
+      products: true,
+      sales: true,
+      inventory: true,
+      expenses: true,
+      suppliers: true,
+      cash: true,
+      reports: true,
+    },
+  },
+  mixed: {
+    label: "Mixto",
+    description: "Servicios y ventas en el mismo espacio de trabajo.",
+    modules: {
+      clients: true,
+      budgets: true,
+      orders: true,
+      monthly: true,
+      products: true,
+      sales: true,
+      inventory: true,
+      expenses: true,
+      suppliers: true,
+      cash: true,
+      reports: true,
+    },
+  },
+};
+
+const DEFAULT_MODULES = BUSINESS_PRESETS.services.modules;
+
 function createEmptyData(overrides = {}) {
+  const business = {
+    ...emptyData.business,
+    ...(overrides.business || {}),
+  };
+  business.enabledModules = {
+    ...DEFAULT_MODULES,
+    ...(business.enabledModules || {}),
+  };
+
   return {
     profile: { ...emptyData.profile, ...(overrides.profile || {}) },
-    business: { ...emptyData.business, ...(overrides.business || {}) },
+    business,
     clients: [...(overrides.clients || [])],
     budgets: [...(overrides.budgets || [])],
     orders: [...(overrides.orders || [])],
+    products: [...(overrides.products || [])],
+    sales: [...(overrides.sales || [])],
+    expenses: [...(overrides.expenses || [])],
+    suppliers: [...(overrides.suppliers || [])],
+    cashSessions: [...(overrides.cashSessions || [])],
+    stockMovements: [...(overrides.stockMovements || [])],
     frequentServices: [...(overrides.frequentServices || [])],
     history: [...(overrides.history || [])],
   };
@@ -56,13 +164,19 @@ function cloudDocId(email) {
 }
 
 const navItems = [
-  { id: "dashboard", label: "Dashboard", icon: "▦" },
-  { id: "clients", label: "Clientes", icon: "◉" },
-  { id: "budgets", label: "Presupuestos", icon: "◇" },
-  { id: "orders", label: "Órdenes y Pagos", icon: "▤" },
-  { id: "monthly", label: "Resumen Mensual", icon: "▧" },
-  { id: "history", label: "Historial", icon: "≡" },
-  { id: "settings", label: "Configuración", icon: "⚙" },
+  { id: "dashboard", label: "Dashboard", icon: "DB", always: true },
+  { id: "clients", label: "Clientes", icon: "CL", module: "clients" },
+  { id: "budgets", label: "Presupuestos", icon: "PR", module: "budgets" },
+  { id: "orders", label: "Ordenes y Pagos", icon: "OP", module: "orders" },
+  { id: "products", label: "Productos", icon: "PD", module: "products" },
+  { id: "sales", label: "Ventas", icon: "VT", module: "sales" },
+  { id: "expenses", label: "Gastos", icon: "GS", module: "expenses" },
+  { id: "suppliers", label: "Proveedores", icon: "PV", module: "suppliers" },
+  { id: "cash", label: "Caja diaria", icon: "CJ", module: "cash" },
+  { id: "monthly", label: "Resumen Mensual", icon: "RM", module: "monthly" },
+  { id: "reports", label: "Reportes", icon: "RP", module: "reports" },
+  { id: "history", label: "Historial", icon: "HT", always: true },
+  { id: "settings", label: "Configuracion", icon: "CF", always: true },
 ];
 
 const ORDER_STATUS = ["Pendiente", "Terminado"];
@@ -962,15 +1076,47 @@ function getClient(data, name) {
   return data.clients.find((client) => client.name === name);
 }
 
+function getEnabledModules(data) {
+  return {
+    ...DEFAULT_MODULES,
+    ...(data?.business?.enabledModules || {}),
+  };
+}
+
+function isModuleEnabled(data, module) {
+  return Boolean(getEnabledModules(data)[module]);
+}
+
+function getVisibleNavItems(data) {
+  const enabled = getEnabledModules(data);
+  return navItems.filter((item) => item.always || enabled[item.module]);
+}
+
+function productStock(product) {
+  return Number(product?.stock || 0);
+}
+
+function stockTone(product) {
+  if (!product?.tracksStock) return "neutral";
+  const stock = productStock(product);
+  const min = Number(product.minStock || 0);
+  if (stock <= 0) return "danger";
+  if (stock <= min) return "warning";
+  return "success";
+}
+
 function Badge({ children, tone = "neutral" }) {
   const tones = {
     neutral: "border-white/10 bg-white/[0.06] text-zinc-300",
     green: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
     amber: "border-amber-400/20 bg-amber-400/10 text-amber-300",
+    success: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
+    warning: "border-amber-400/20 bg-amber-400/10 text-amber-300",
+    danger: "border-red-400/20 bg-red-400/10 text-red-300",
   };
 
   return (
-    <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium leading-5 ${tones[tone]}`}>
+    <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium leading-5 ${tones[tone] || tones.neutral}`}>
       {children}
     </span>
   );
@@ -1067,8 +1213,8 @@ function Select({ label, value, onChange, options }) {
         className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none"
       >
         {options.map((option) => (
-          <option key={option} value={option} className="bg-zinc-950">
-            {option}
+          <option key={typeof option === "string" ? option : option.value} value={typeof option === "string" ? option : option.value} className="bg-zinc-950">
+            {typeof option === "string" ? option : option.label}
           </option>
         ))}
       </select>
@@ -1775,6 +1921,7 @@ function AuthScreen({ onLogin }) {
 }
 
 function Sidebar({ active, setActive, data }) {
+  const visibleNav = getVisibleNavItems(data);
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-72 border-r border-white/10 bg-[#090909]/95 p-5 backdrop-blur-xl lg:block">
       <div className="mb-9 flex items-center gap-3">
@@ -1785,7 +1932,7 @@ function Sidebar({ active, setActive, data }) {
         </div>
       </div>
       <nav className="space-y-2">
-        {navItems.map((item) => (
+        {visibleNav.map((item) => (
           <button key={item.id} onClick={() => setActive(item.id)} className={`flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.08] text-white" : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"}`}>
             <span className="font-mono text-sm">{item.icon}</span>{item.label}
           </button>
@@ -1816,6 +1963,7 @@ function Topbar({
   const fullName = formatFullName(data.profile) || `${account.name || ""} ${account.surname || ""}`.trim();
   const initials = profileInitials(data.profile);
   const photoURL = data.profile.photoURL || account.photoURL || "";
+  const searchOptions = getVisibleNavItems(data).filter((item) => !["dashboard", "settings"].includes(item.id));
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[#080808]/75 px-5 py-3 backdrop-blur-xl lg:px-8">
@@ -1834,13 +1982,10 @@ function Topbar({
           <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
         </button>
         <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_5.75rem] gap-2 md:max-w-2xl md:grid-cols-[minmax(0,1fr)_7rem]">
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar clientes, presupuestos, órdenes, pagos..." className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-white/25" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar clientes, ventas, productos, pagos..." className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-white/25" />
           <select aria-label="Filtrar búsqueda" title="Filtrar" value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] px-2 py-2.5 text-xs font-medium text-zinc-300 outline-none sm:px-3">
             <option className="bg-zinc-950" value="all">Filtrar</option>
-            <option className="bg-zinc-950" value="clients">Clientes</option>
-            <option className="bg-zinc-950" value="budgets">Presupuestos</option>
-            <option className="bg-zinc-950" value="orders">Órdenes</option>
-            <option className="bg-zinc-950" value="history">Historial</option>
+            {searchOptions.map((item) => <option key={item.id} className="bg-zinc-950" value={item.id}>{item.label}</option>)}
           </select>
         </div>
         <div className="flex shrink-0 items-center gap-3">
@@ -1890,6 +2035,7 @@ function Topbar({
 
 function MobileMenuDrawer({ open, closing, active, setActive, data, closeMenu, theme, toggleTheme, language, toggleLanguage }) {
   if (!open) return null;
+  const visibleNav = getVisibleNavItems(data);
 
   return (
     <div className={`nm-mobile-drawer-layer fixed inset-0 z-[120] overflow-hidden overscroll-contain bg-black/45 backdrop-blur-xl lg:hidden ${closing ? "nm-menu-overlay-out" : "nm-menu-overlay-in"}`} onClick={closeMenu}>
@@ -1912,7 +2058,7 @@ function MobileMenuDrawer({ open, closing, active, setActive, data, closeMenu, t
         </div>
 
         <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1">
-          {navItems.map((item) => (
+          {visibleNav.map((item) => (
             <button
               key={item.id}
               onClick={() => {
@@ -2854,6 +3000,310 @@ function OrdersTable({ orders, compact = false, data, onEdit, onDelete, onFinish
   );
 }
 
+function Products({ data, setData, search }) {
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ name: "", category: "", cost: "", price: "", stock: "", minStock: "", tracksStock: true });
+  const query = search.trim().toLowerCase();
+  const products = (data.products || []).filter((product) => [product.name, product.category, product.sku].join(" ").toLowerCase().includes(query));
+
+  function reset() {
+    setEditing(null);
+    setForm({ name: "", category: "", cost: "", price: "", stock: "", minStock: "", tracksStock: true });
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    if (!form.name.trim()) return notify("Completa el nombre del producto.");
+    const product = {
+      id: editing || createId("PROD"),
+      name: form.name.trim(),
+      category: form.category.trim(),
+      cost: parseARS(form.cost),
+      price: parseARS(form.price),
+      stock: form.tracksStock ? Number(form.stock || 0) : 0,
+      minStock: form.tracksStock ? Number(form.minStock || 0) : 0,
+      tracksStock: Boolean(form.tracksStock),
+      updatedAt: new Date().toISOString(),
+    };
+    setData((prev) => {
+      const products = editing
+        ? (prev.products || []).map((item) => (item.id === editing ? product : item))
+        : [product, ...(prev.products || [])];
+      const stockMovements = editing || !product.tracksStock ? (prev.stockMovements || []) : [
+        { id: createId("STK"), productId: product.id, productName: product.name, type: "Alta inicial", quantity: product.stock, date: todayISO() },
+        ...(prev.stockMovements || []),
+      ];
+      return addHistory({ ...prev, products, stockMovements }, "Producto", editing ? "Producto actualizado" : "Producto creado", product.name);
+    });
+    notify(editing ? "Producto actualizado." : "Producto creado.");
+    reset();
+  }
+
+  async function remove(id) {
+    if (!(await confirmAction("Seguro que queres eliminar este producto?"))) return;
+    setData((prev) => addHistory({ ...prev, products: (prev.products || []).filter((item) => item.id !== id) }, "Producto", "Producto eliminado", id));
+  }
+
+  function startEdit(product) {
+    setEditing(product.id);
+    setForm({
+      name: product.name || "",
+      category: product.category || "",
+      cost: formatARSInput(product.cost || 0),
+      price: formatARSInput(product.price || 0),
+      stock: String(product.stock || 0),
+      minStock: String(product.minStock || 0),
+      tracksStock: product.tracksStock !== false,
+    });
+  }
+
+  const lowStock = products.filter((product) => product.tracksStock && productStock(product) <= Number(product.minStock || 0)).length;
+
+  return (
+    <div className="space-y-6">
+      <PageHeader label="Productos" title="Catalogo e inventario" text="Carga productos, precios, costos y control de stock solo cuando el negocio lo necesita." />
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard label="Productos" value={products.length} meta="Catalogo activo" icon="PD" />
+        <StatCard label="Con stock" value={products.filter((product) => product.tracksStock).length} meta="Control inventario" icon="ST" />
+        <StatCard label="Stock bajo" value={lowStock} meta="Alertas de reposicion" icon="!" />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
+        <Panel className="p-5">
+          <h3 className="text-xl font-semibold text-white">{editing ? "Editar producto" : "Nuevo producto"}</h3>
+          <form onSubmit={submit} className="mt-5 space-y-4">
+            <Input label="Nombre" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
+            <Input label="Categoria" value={form.category} onChange={(v) => setForm({ ...form, category: v })} placeholder="Opcional" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="Costo" value={form.cost} onChange={(v) => setForm({ ...form, cost: formatARSInput(v) })} />
+              <Input label="Precio venta" value={form.price} onChange={(v) => setForm({ ...form, price: formatARSInput(v) })} />
+            </div>
+            <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm text-zinc-300">
+              <input type="checkbox" checked={form.tracksStock} onChange={(e) => setForm({ ...form, tracksStock: e.target.checked })} />
+              Controlar stock de este producto
+            </label>
+            {form.tracksStock && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Input label="Stock actual" value={form.stock} onChange={(v) => setForm({ ...form, stock: onlyDigits(v) })} />
+                <Input label="Stock minimo" value={form.minStock} onChange={(v) => setForm({ ...form, minStock: onlyDigits(v) })} />
+              </div>
+            )}
+            <div className="flex gap-3">
+              <PrimaryButton type="submit" className="flex-1">{editing ? "Guardar cambios" : "Agregar producto"}</PrimaryButton>
+              {editing && <SecondaryButton onClick={reset}>Cancelar</SecondaryButton>}
+            </div>
+          </form>
+        </Panel>
+        <Panel className="overflow-hidden">
+          <div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Productos registrados</h3><p className="mt-1 text-sm text-zinc-500">{products.length} resultados visibles</p></div>
+          {products.length === 0 ? <EmptyState title="Sin productos" text="Carga el primer producto para empezar a vender o controlar stock." /> : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[820px] text-left text-sm">
+                <thead className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-zinc-600"><tr><th className="px-4 py-3">Producto</th><th className="px-4 py-3">Categoria</th><th className="px-4 py-3">Costo</th><th className="px-4 py-3">Precio</th><th className="px-4 py-3">Stock</th><th className="px-4 py-3">Acciones</th></tr></thead>
+                <tbody className="divide-y divide-white/10">{products.map((product) => <tr key={product.id} className="hover:bg-white/[0.035]"><td className="px-4 py-3 font-medium text-white">{product.name}<p className="mt-1 text-xs text-zinc-600">{product.id}</p></td><td className="px-4 py-3 text-zinc-400">{product.category || "-"}</td><td className="px-4 py-3 text-zinc-400">{currency(product.cost || 0)}</td><td className="px-4 py-3 text-zinc-200">{currency(product.price || 0)}</td><td className="px-4 py-3"><Badge tone={stockTone(product)}>{product.tracksStock ? product.stock : "Sin stock"}</Badge></td><td className="px-4 py-3"><div className="flex gap-2"><SecondaryButton onClick={() => startEdit(product)}>Editar</SecondaryButton><SecondaryButton onClick={() => remove(product.id)}>Eliminar</SecondaryButton></div></td></tr>)}</tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+function Sales({ data, setData, search }) {
+  const [form, setForm] = useState({ productId: "", quantity: "1", amount: "", paymentMethod: "Efectivo", client: "", notes: "" });
+  const query = search.trim().toLowerCase();
+  const sales = (data.sales || []).filter((sale) => [sale.id, sale.productName, sale.client, sale.paymentMethod, sale.notes].join(" ").toLowerCase().includes(query));
+  const selectedProduct = (data.products || []).find((product) => product.id === form.productId);
+
+  function submit(e) {
+    e.preventDefault();
+    const quantity = Math.max(Number(form.quantity || 1), 1);
+    const amount = parseARS(form.amount);
+    if (!selectedProduct && amount <= 0) return notify("Carga un producto o un importe de venta.");
+    if (selectedProduct?.tracksStock && productStock(selectedProduct) < quantity) return notify("No hay stock suficiente para esta venta.");
+    const sale = {
+      id: createId("VEN"),
+      date: todayISO(),
+      productId: selectedProduct?.id || "",
+      productName: selectedProduct?.name || "Venta manual",
+      quantity,
+      amount,
+      paymentMethod: form.paymentMethod,
+      client: form.client,
+      notes: form.notes.trim(),
+    };
+    setData((prev) => {
+      const products = selectedProduct?.tracksStock
+        ? (prev.products || []).map((product) => product.id === selectedProduct.id ? { ...product, stock: Math.max(productStock(product) - quantity, 0), updatedAt: new Date().toISOString() } : product)
+        : (prev.products || []);
+      const stockMovements = selectedProduct?.tracksStock ? [{ id: createId("STK"), productId: selectedProduct.id, productName: selectedProduct.name, type: "Venta", quantity: -quantity, date: todayISO() }, ...(prev.stockMovements || [])] : (prev.stockMovements || []);
+      return addHistory({ ...prev, products, stockMovements, sales: [sale, ...(prev.sales || [])] }, "Venta", "Venta registrada", `${sale.productName} - ${currency(sale.amount)}`);
+    });
+    notify("Venta registrada.");
+    setForm({ productId: "", quantity: "1", amount: "", paymentMethod: "Efectivo", client: "", notes: "" });
+  }
+
+  const month = new Date().toISOString().slice(0, 7);
+  const monthSales = (data.sales || []).filter((sale) => monthKey(sale.date) === month);
+  const monthTotal = monthSales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader label="Ventas" title="Venta rapida" text="Registra operaciones del dia, descuenta stock cuando corresponde y separa los medios de pago." />
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard label="Ventas del mes" value={monthSales.length} meta="Operaciones registradas" icon="VT" />
+        <StatCard label="Ingresos por ventas" value={currency(monthTotal)} meta="Total mensual" icon="$" />
+        <StatCard label="Ticket promedio" value={currency(monthSales.length ? monthTotal / monthSales.length : 0)} meta="Promedio mensual" icon="TP" />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
+        <Panel className="p-5">
+          <h3 className="text-xl font-semibold text-white">Nueva venta</h3>
+          <form onSubmit={submit} className="mt-5 space-y-4">
+            <Select label="Producto" value={form.productId} onChange={(v) => {
+              const product = (data.products || []).find((item) => item.id === v);
+              setForm({ ...form, productId: v, amount: product ? formatARSInput((product.price || 0) * Number(form.quantity || 1)) : form.amount });
+            }} options={[{ value: "", label: "Venta manual" }, ...(data.products || []).map((product) => ({ value: product.id, label: `${product.name} - ${currency(product.price || 0)}` }))]} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input label="Cantidad" value={form.quantity} onChange={(v) => {
+                const quantity = onlyDigits(v) || "1";
+                setForm({ ...form, quantity, amount: selectedProduct ? formatARSInput((selectedProduct.price || 0) * Number(quantity || 1)) : form.amount });
+              }} />
+              <Input label="Importe" value={form.amount} onChange={(v) => setForm({ ...form, amount: formatARSInput(v) })} />
+            </div>
+            <Select label="Metodo de pago" value={form.paymentMethod} onChange={(v) => setForm({ ...form, paymentMethod: v })} options={["Efectivo", "Transferencia", "Mercado Pago", "Tarjeta", "Fiado"].map((value) => ({ value, label: value }))} />
+            <ClientPicker label="Cliente" value={form.client} onChange={(v) => setForm({ ...form, client: v })} clients={data.clients} />
+            <Input label="Notas" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} placeholder="Opcional" />
+            <PrimaryButton type="submit" className="w-full">Registrar venta</PrimaryButton>
+          </form>
+        </Panel>
+        <Panel className="overflow-hidden">
+          <div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Ventas recientes</h3><p className="mt-1 text-sm text-zinc-500">{sales.length} resultados visibles</p></div>
+          {sales.length === 0 ? <EmptyState title="Sin ventas" text="Las ventas registradas van a aparecer aca." /> : <div className="divide-y divide-white/10">{sales.slice(0, 30).map((sale) => <div key={sale.id} className="grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-center"><div><p className="font-medium text-white">{sale.productName}</p><p className="mt-1 text-sm text-zinc-500">{dateLabel(sale.date)} - {sale.quantity} u. - {sale.paymentMethod}{sale.client ? ` - ${sale.client}` : ""}</p></div><p className="text-lg font-semibold text-white">{currency(sale.amount)}</p></div>)}</div>}
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+function Expenses({ data, setData, search }) {
+  const [form, setForm] = useState({ description: "", category: "", amount: "", supplier: "", paymentMethod: "Efectivo" });
+  const query = search.trim().toLowerCase();
+  const expenses = (data.expenses || []).filter((expense) => [expense.description, expense.category, expense.supplier, expense.paymentMethod].join(" ").toLowerCase().includes(query));
+
+  function submit(e) {
+    e.preventDefault();
+    if (!form.description.trim() || parseARS(form.amount) <= 0) return notify("Completa descripcion e importe.");
+    const expense = { id: createId("GAS"), date: todayISO(), description: form.description.trim(), category: form.category.trim(), amount: parseARS(form.amount), supplier: form.supplier, paymentMethod: form.paymentMethod };
+    setData((prev) => addHistory({ ...prev, expenses: [expense, ...(prev.expenses || [])] }, "Gasto", "Gasto registrado", `${expense.description} - ${currency(expense.amount)}`));
+    notify("Gasto registrado.");
+    setForm({ description: "", category: "", amount: "", supplier: "", paymentMethod: "Efectivo" });
+  }
+
+  const month = new Date().toISOString().slice(0, 7);
+  const monthExpenses = expenses.filter((expense) => monthKey(expense.date) === month);
+  const total = monthExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader label="Gastos" title="Egresos del negocio" text="Registra alquiler, insumos, compras, publicidad y cualquier salida de dinero." />
+      <div className="grid gap-4 md:grid-cols-2"><StatCard label="Gastos del mes" value={currency(total)} meta={`${monthExpenses.length} movimientos`} icon="GS" /><StatCard label="Categorias" value={new Set(expenses.map((expense) => expense.category).filter(Boolean)).size} meta="Orden de egresos" icon="CT" /></div>
+      <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
+        <Panel className="p-5"><h3 className="text-xl font-semibold text-white">Nuevo gasto</h3><form onSubmit={submit} className="mt-5 space-y-4"><Input label="Descripcion" value={form.description} onChange={(v) => setForm({ ...form, description: v })} /><Input label="Categoria" value={form.category} onChange={(v) => setForm({ ...form, category: v })} placeholder="Ej: insumos, alquiler" /><Input label="Importe" value={form.amount} onChange={(v) => setForm({ ...form, amount: formatARSInput(v) })} /><Select label="Proveedor" value={form.supplier} onChange={(v) => setForm({ ...form, supplier: v })} options={[{ value: "", label: "Sin proveedor" }, ...(data.suppliers || []).map((supplier) => ({ value: supplier.name, label: supplier.name }))]} /><Select label="Metodo de pago" value={form.paymentMethod} onChange={(v) => setForm({ ...form, paymentMethod: v })} options={["Efectivo", "Transferencia", "Mercado Pago", "Tarjeta"].map((value) => ({ value, label: value }))} /><PrimaryButton type="submit" className="w-full">Registrar gasto</PrimaryButton></form></Panel>
+        <Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Gastos recientes</h3></div>{expenses.length === 0 ? <EmptyState title="Sin gastos" text="Los egresos registrados van a aparecer aca." /> : <div className="divide-y divide-white/10">{expenses.slice(0, 30).map((expense) => <div key={expense.id} className="grid gap-2 p-4 md:grid-cols-[1fr_auto]"><div><p className="font-medium text-white">{expense.description}</p><p className="mt-1 text-sm text-zinc-500">{dateLabel(expense.date)} - {expense.category || "Sin categoria"}{expense.supplier ? ` - ${expense.supplier}` : ""}</p></div><p className="font-semibold text-red-300">-{currency(expense.amount)}</p></div>)}</div>}</Panel>
+      </div>
+    </div>
+  );
+}
+
+function Suppliers({ data, setData, search }) {
+  const [form, setForm] = useState({ name: "", phone: "", email: "", category: "", notes: "" });
+  const query = search.trim().toLowerCase();
+  const suppliers = (data.suppliers || []).filter((supplier) => [supplier.name, supplier.phone, supplier.email, supplier.category, supplier.notes].join(" ").toLowerCase().includes(query));
+
+  function submit(e) {
+    e.preventDefault();
+    if (!form.name.trim()) return notify("Completa el nombre del proveedor.");
+    const supplier = { id: createId("PROV"), ...form, name: form.name.trim(), phone: onlyDigits(form.phone), createdAt: new Date().toISOString() };
+    setData((prev) => addHistory({ ...prev, suppliers: [supplier, ...(prev.suppliers || [])] }, "Proveedor", "Proveedor creado", supplier.name));
+    notify("Proveedor creado.");
+    setForm({ name: "", phone: "", email: "", category: "", notes: "" });
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader label="Proveedores" title="Contactos de compra" text="Guarda mayoristas, distribuidores y servicios vinculados a compras o gastos." />
+      <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
+        <Panel className="p-5"><h3 className="text-xl font-semibold text-white">Nuevo proveedor</h3><form onSubmit={submit} className="mt-5 space-y-4"><Input label="Nombre" value={form.name} onChange={(v) => setForm({ ...form, name: v })} /><Input label="Telefono" value={form.phone} onChange={(v) => setForm({ ...form, phone: onlyDigits(v) })} /><Input label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} /><Input label="Rubro" value={form.category} onChange={(v) => setForm({ ...form, category: v })} /><Input label="Notas" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} /><PrimaryButton type="submit" className="w-full">Agregar proveedor</PrimaryButton></form></Panel>
+        <Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Proveedores registrados</h3><p className="mt-1 text-sm text-zinc-500">{suppliers.length} resultados visibles</p></div>{suppliers.length === 0 ? <EmptyState title="Sin proveedores" text="Carga proveedores para vincularlos con gastos y compras." /> : <div className="divide-y divide-white/10">{suppliers.map((supplier) => <div key={supplier.id} className="p-4"><p className="font-medium text-white">{supplier.name}</p><p className="mt-1 text-sm text-zinc-500">{[supplier.phone, supplier.email, supplier.category].filter(Boolean).join(" - ") || supplier.id}</p>{supplier.notes && <p className="mt-2 text-sm text-zinc-600">{supplier.notes}</p>}</div>)}</div>}</Panel>
+      </div>
+    </div>
+  );
+}
+
+function Cash({ data, setData }) {
+  const openSession = (data.cashSessions || []).find((session) => !session.closedAt);
+  const [openingAmount, setOpeningAmount] = useState("");
+  const [closingAmount, setClosingAmount] = useState("");
+  const todaySales = (data.sales || []).filter((sale) => sale.date === todayISO()).reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+  const todayExpenses = (data.expenses || []).filter((expense) => expense.date === todayISO()).reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const expected = Number(openSession?.openingAmount || 0) + todaySales - todayExpenses;
+
+  function openCash(e) {
+    e.preventDefault();
+    if (openSession) return notify("Ya hay una caja abierta.");
+    const session = { id: createId("CAJ"), date: todayISO(), openingAmount: parseARS(openingAmount), openedAt: new Date().toISOString() };
+    setData((prev) => addHistory({ ...prev, cashSessions: [session, ...(prev.cashSessions || [])] }, "Caja", "Caja abierta", currency(session.openingAmount)));
+    setOpeningAmount("");
+  }
+
+  function closeCash(e) {
+    e.preventDefault();
+    if (!openSession) return;
+    const real = parseARS(closingAmount);
+    setData((prev) => addHistory({ ...prev, cashSessions: (prev.cashSessions || []).map((session) => session.id === openSession.id ? { ...session, closedAt: new Date().toISOString(), salesTotal: todaySales, expensesTotal: todayExpenses, expectedAmount: expected, closingAmount: real, difference: real - expected } : session) }, "Caja", "Caja cerrada", `Diferencia: ${currency(real - expected)}`));
+    setClosingAmount("");
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader label="Caja diaria" title="Control del dia" text="Abre y cierra caja para comparar efectivo esperado contra dinero real." />
+      <div className="grid gap-4 md:grid-cols-4"><StatCard label="Saldo inicial" value={currency(openSession?.openingAmount || 0)} meta={openSession ? "Caja abierta" : "Sin caja abierta"} icon="IN" /><StatCard label="Ventas hoy" value={currency(todaySales)} meta="Ingresos del dia" icon="VT" /><StatCard label="Gastos hoy" value={currency(todayExpenses)} meta="Egresos del dia" icon="GS" /><StatCard label="Esperado" value={currency(expected)} meta="Saldo calculado" icon="CJ" /></div>
+      <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
+        <Panel className="p-5">{openSession ? <form onSubmit={closeCash} className="space-y-4"><h3 className="text-xl font-semibold text-white">Cerrar caja</h3><Input label="Dinero real al cierre" value={closingAmount} onChange={(v) => setClosingAmount(formatARSInput(v))} /><PrimaryButton type="submit" className="w-full">Cerrar caja</PrimaryButton></form> : <form onSubmit={openCash} className="space-y-4"><h3 className="text-xl font-semibold text-white">Abrir caja</h3><Input label="Saldo inicial" value={openingAmount} onChange={(v) => setOpeningAmount(formatARSInput(v))} /><PrimaryButton type="submit" className="w-full">Abrir caja</PrimaryButton></form>}</Panel>
+        <Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Cierres anteriores</h3></div>{(data.cashSessions || []).length === 0 ? <EmptyState title="Sin cajas" text="Cuando abras y cierres caja, el historial aparecera aca." /> : <div className="divide-y divide-white/10">{(data.cashSessions || []).map((session) => <div key={session.id} className="grid gap-2 p-4 md:grid-cols-[1fr_auto]"><div><p className="font-medium text-white">{dateLabel(session.date)}</p><p className="mt-1 text-sm text-zinc-500">{session.closedAt ? "Cerrada" : "Abierta"} - Esperado {currency(session.expectedAmount || session.openingAmount || 0)}</p></div><Badge tone={session.closedAt && Number(session.difference || 0) !== 0 ? "warning" : "success"}>{session.closedAt ? currency(session.difference || 0) : "Activa"}</Badge></div>)}</div>}</Panel>
+      </div>
+    </div>
+  );
+}
+
+function Reports({ data }) {
+  const month = new Date().toISOString().slice(0, 7);
+  const monthSales = (data.sales || []).filter((sale) => monthKey(sale.date) === month);
+  const monthExpenses = (data.expenses || []).filter((expense) => monthKey(expense.date) === month);
+  const salesTotal = monthSales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+  const expensesTotal = monthExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const serviceTotal = (data.orders || []).filter((order) => monthKey(order.date) === month).reduce((sum, order) => sum + Number(order.total || 0), 0);
+  const lowStock = (data.products || []).filter((product) => product.tracksStock && productStock(product) <= Number(product.minStock || 0));
+  const topProducts = Object.values(monthSales.reduce((acc, sale) => {
+    const key = sale.productName || "Venta manual";
+    acc[key] = acc[key] || { name: key, quantity: 0, amount: 0 };
+    acc[key].quantity += Number(sale.quantity || 0);
+    acc[key].amount += Number(sale.amount || 0);
+    return acc;
+  }, {})).sort((a, b) => b.amount - a.amount).slice(0, 6);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader label="Reportes" title="Lectura del negocio" text="Una vista compacta de ventas, servicios, gastos, margen operativo y alertas." />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><StatCard label="Ventas productos" value={currency(salesTotal)} meta="Mes actual" icon="VT" /><StatCard label="Servicios" value={currency(serviceTotal)} meta="Ordenes del mes" icon="OP" /><StatCard label="Gastos" value={currency(expensesTotal)} meta="Egresos del mes" icon="GS" /><StatCard label="Resultado bruto" value={currency(salesTotal + serviceTotal - expensesTotal)} meta="Ingresos menos gastos" icon="$" /></div>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Productos mas vendidos</h3></div>{topProducts.length === 0 ? <EmptyState title="Sin ventas" text="Cuando registres ventas, este ranking se calcula automaticamente." /> : <div className="divide-y divide-white/10">{topProducts.map((item) => <div key={item.name} className="flex items-center justify-between gap-4 p-4"><div><p className="font-medium text-white">{item.name}</p><p className="mt-1 text-sm text-zinc-500">{item.quantity} unidades</p></div><p className="font-semibold text-white">{currency(item.amount)}</p></div>)}</div>}</Panel>
+        <Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Alertas de stock</h3></div>{lowStock.length === 0 ? <EmptyState title="Stock en orden" text="No hay productos por debajo del minimo configurado." /> : <div className="divide-y divide-white/10">{lowStock.map((product) => <div key={product.id} className="flex items-center justify-between gap-4 p-4"><div><p className="font-medium text-white">{product.name}</p><p className="mt-1 text-sm text-zinc-500">Minimo {product.minStock}</p></div><Badge tone={stockTone(product)}>{product.stock}</Badge></div>)}</div>}</Panel>
+      </div>
+    </div>
+  );
+}
+
 function Monthly({ data }) {
   const summary = buildMonthSummary(data.orders);
   const current = new Date().toISOString().slice(0, 7);
@@ -2893,13 +3343,21 @@ function GlobalSearchResults({ data, search, filter, setActive, clearSearch }) {
   const clients = data.clients.filter((client) => [client.name, client.phone, client.email, client.notes].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const budgets = data.budgets.filter((budget) => [budget.id, budget.client, budget.service, budget.status, budget.observations].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const orders = data.orders.filter((order) => [order.id, order.client, order.service, order.status, order.payment, order.observations].join(" ").toLowerCase().includes(query)).slice(0, 8);
+  const products = (data.products || []).filter((product) => [product.name, product.category, product.id].join(" ").toLowerCase().includes(query)).slice(0, 8);
+  const sales = (data.sales || []).filter((sale) => [sale.id, sale.productName, sale.client, sale.paymentMethod, sale.notes].join(" ").toLowerCase().includes(query)).slice(0, 8);
+  const expenses = (data.expenses || []).filter((expense) => [expense.description, expense.category, expense.supplier, expense.paymentMethod].join(" ").toLowerCase().includes(query)).slice(0, 8);
+  const suppliers = (data.suppliers || []).filter((supplier) => [supplier.name, supplier.phone, supplier.email, supplier.category, supplier.notes].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const history = data.history.filter((item) => [item.type, item.title, item.description].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const groups = [
     { key: "clients", title: "Clientes", section: "clients", items: clients },
     { key: "budgets", title: "Presupuestos", section: "budgets", items: budgets },
     { key: "orders", title: "Órdenes", section: "orders", items: orders },
+    { key: "products", title: "Productos", section: "products", items: products },
+    { key: "sales", title: "Ventas", section: "sales", items: sales },
+    { key: "expenses", title: "Gastos", section: "expenses", items: expenses },
+    { key: "suppliers", title: "Proveedores", section: "suppliers", items: suppliers },
     { key: "history", title: "Historial", section: "history", items: history },
-  ].filter((group) => filter === "all" || group.key === filter);
+  ].filter((group) => (group.key === "history" || isModuleEnabled(data, group.key)) && (filter === "all" || group.key === filter));
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
 
   function openSection(section) {
@@ -2928,6 +3386,10 @@ function GlobalSearchResults({ data, search, filter, setActive, clearSearch }) {
             {group.key === "clients" && group.items.map((client) => <button key={client.id} onClick={() => openSection("clients")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{client.name}</p><p className="mt-1 text-sm text-zinc-500">{[client.phone, client.email].filter(Boolean).join(" · ") || client.id}</p></button>)}
             {group.key === "budgets" && group.items.map((budget) => <button key={budget.id} onClick={() => openSection("budgets")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-mono text-sm text-zinc-300">{budget.id}</p><p className="mt-1 font-medium text-white">{budget.client}</p><p className="mt-1 text-sm text-zinc-500">{budget.service} · {currency(budget.amount)}</p></button>)}
             {group.key === "orders" && group.items.map((order) => <button key={order.id} onClick={() => openSection("orders")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-mono text-sm text-zinc-300">{order.id}</p><p className="mt-1 font-medium text-white">{order.client}</p><p className="mt-1 text-sm text-zinc-500">{order.service} · {currency(order.total)}</p></button>)}
+            {group.key === "products" && group.items.map((product) => <button key={product.id} onClick={() => openSection("products")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{product.name}</p><p className="mt-1 text-sm text-zinc-500">{product.category || product.id} - {currency(product.price || 0)}</p></button>)}
+            {group.key === "sales" && group.items.map((sale) => <button key={sale.id} onClick={() => openSection("sales")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{sale.productName}</p><p className="mt-1 text-sm text-zinc-500">{sale.paymentMethod} - {currency(sale.amount || 0)}</p></button>)}
+            {group.key === "expenses" && group.items.map((expense) => <button key={expense.id} onClick={() => openSection("expenses")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{expense.description}</p><p className="mt-1 text-sm text-zinc-500">{expense.category || "Sin categoria"} - {currency(expense.amount || 0)}</p></button>)}
+            {group.key === "suppliers" && group.items.map((supplier) => <button key={supplier.id} onClick={() => openSection("suppliers")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{supplier.name}</p><p className="mt-1 text-sm text-zinc-500">{[supplier.phone, supplier.email].filter(Boolean).join(" - ") || supplier.id}</p></button>)}
             {group.key === "history" && group.items.map((item) => <button key={item.id} onClick={() => openSection("history")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><div className="flex items-center gap-3"><Badge>{item.type}</Badge><p className="font-medium text-white">{item.title}</p></div><p className="mt-2 text-sm text-zinc-500">{item.description}</p></button>)}
           </ResultGroup>
         ))}
@@ -2962,6 +3424,27 @@ function Settings({ data, setData, account, exportData, resetData }) {
       )
     );
     notify("Configuración guardada correctamente.");
+  }
+
+  function applyBusinessPreset(type) {
+    const preset = BUSINESS_PRESETS[type];
+    if (!preset) return;
+    setBusiness((prev) => ({
+      ...prev,
+      businessType: type,
+      enabledModules: { ...DEFAULT_MODULES, ...preset.modules },
+    }));
+  }
+
+  function toggleModule(module) {
+    setBusiness((prev) => ({
+      ...prev,
+      enabledModules: {
+        ...DEFAULT_MODULES,
+        ...(prev.enabledModules || {}),
+        [module]: !getEnabledModules({ business: prev })[module],
+      },
+    }));
   }
 
   function startEditService(service) {
@@ -3049,6 +3532,42 @@ function Settings({ data, setData, account, exportData, resetData }) {
             <Input label="Rubro" value={business.category || ""} onChange={(v) => setBusiness({ ...business, category: v })} />
             <Input label="Dirección" value={business.address || ""} onChange={(v) => setBusiness({ ...business, address: v })} />
             <Input label="CUIT / Identificación" value={business.cuit || ""} onChange={(v) => setBusiness({ ...business, cuit: onlyDigits(v) })} />
+          </div>
+        </Panel>
+
+        <Panel className="p-6 xl:col-span-2">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h3 className="text-xl font-semibold text-white">Tipo de negocio y modulos</h3>
+              <p className="mt-1 text-sm text-zinc-500">Elegí un perfil para que la app muestre solo lo necesario. Después podés ajustar cada módulo manualmente.</p>
+            </div>
+            <Badge>{BUSINESS_PRESETS[business.businessType]?.label || "Personalizado"}</Badge>
+          </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {Object.entries(BUSINESS_PRESETS).map(([type, preset]) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => applyBusinessPreset(type)}
+                className={`rounded-2xl border p-4 text-left transition ${business.businessType === type ? "border-white/25 bg-white/[0.08]" : "border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.06]"}`}
+              >
+                <p className="font-medium text-white">{preset.label}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-500">{preset.description}</p>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {navItems.filter((item) => item.module).map((item) => {
+              const enabled = getEnabledModules({ business })[item.module];
+              return (
+                <label key={item.id} className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm transition ${enabled ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200" : "border-white/10 bg-white/[0.035] text-zinc-400"}`}>
+                  <span>{item.label}</span>
+                  <input type="checkbox" checked={enabled} onChange={() => toggleModule(item.module)} />
+                </label>
+              );
+            })}
           </div>
         </Panel>
 
@@ -3300,16 +3819,24 @@ function AppShell({ account, initialData, onLogout }) {
   const exportData = useCallback(() => { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `nexo-management-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }, [data]);
   const resetData = useCallback(async () => { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory(createEmptyData({ profile: data.profile, business: data.business }), "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }, [data.business, data.profile]);
   const needsProfileCompletion = account.provider !== "anonymous" && !account.isAnonymous && !isWorkspaceProfileComplete(data);
+  const visibleNav = useMemo(() => getVisibleNavItems(data), [data]);
+  const visibleActive = visibleNav.some((item) => item.id === active) ? active : "dashboard";
   const content = useMemo(() => {
     if (search.trim()) return <GlobalSearchResults data={data} search={search} filter={searchFilter} setActive={setActive} clearSearch={() => setSearch("")} />;
-    if (active === "dashboard") return <Dashboard data={data} setData={setData} setActive={setActive} />;
-    if (active === "clients") return <Clients data={data} setData={setData} search={search} />;
-    if (active === "budgets") return <Budgets data={data} setData={setData} search={search} />;
-    if (active === "orders") return <Orders data={data} setData={setData} search={search} />;
-    if (active === "monthly") return <Monthly data={data} />;
-    if (active === "history") return <History data={data} search={search} />;
+    if (visibleActive === "dashboard") return <Dashboard data={data} setData={setData} setActive={setActive} />;
+    if (visibleActive === "clients") return <Clients data={data} setData={setData} search={search} />;
+    if (visibleActive === "budgets") return <Budgets data={data} setData={setData} search={search} />;
+    if (visibleActive === "orders") return <Orders data={data} setData={setData} search={search} />;
+    if (visibleActive === "products") return <Products data={data} setData={setData} search={search} />;
+    if (visibleActive === "sales") return <Sales data={data} setData={setData} search={search} />;
+    if (visibleActive === "expenses") return <Expenses data={data} setData={setData} search={search} />;
+    if (visibleActive === "suppliers") return <Suppliers data={data} setData={setData} search={search} />;
+    if (visibleActive === "cash") return <Cash data={data} setData={setData} />;
+    if (visibleActive === "monthly") return <Monthly data={data} />;
+    if (visibleActive === "reports") return <Reports data={data} />;
+    if (visibleActive === "history") return <History data={data} search={search} />;
     return <Settings data={data} setData={setData} account={account} exportData={exportData} resetData={resetData} />;
-  }, [active, data, search, searchFilter, setActive, account, exportData, resetData]);
+  }, [visibleActive, data, search, searchFilter, setActive, account, exportData, resetData]);
   const toggleTheme = () => setTheme((value) => value === "dark" ? "light" : "dark");
   const toggleLanguage = () => setLanguage((value) => value === "es" ? "en" : "es");
   if (needsProfileCompletion) return <CompleteProfile data={data} setData={setData} account={account} onLogout={onLogout} />;
