@@ -13,6 +13,7 @@ const emptyData = {
     taxId: "",
     phone: "",
     email: "",
+    photoURL: "",
   },
   business: {
     name: "",
@@ -83,6 +84,13 @@ const EN_TRANSLATIONS = {
   "Contraseña": "Password",
   "Continuar con Google": "Continue with Google",
   "Entrar como anónimo": "Enter as guest",
+  "Foto de perfil": "Profile photo",
+  "Cambiar foto": "Change photo",
+  "Quitar foto": "Remove photo",
+  "Configuración inicial": "Initial setup",
+  "Completá tus datos": "Complete your details",
+  "Para usar tu espacio con Google necesitamos completar los datos personales y del negocio. Estos datos se usan en órdenes, presupuestos y documentos.": "To use your Google workspace, we need to complete your personal and business details. These details are used in orders, estimates, and documents.",
+  "Guardar y entrar": "Save and enter",
   "No tengo cuenta, crear una": "I do not have an account, create one",
   "Ya tengo cuenta, iniciar sesión": "I already have an account, sign in",
   "Solo números: 8 a 15 dígitos": "Numbers only: 8 to 15 digits",
@@ -268,6 +276,8 @@ const EN_TRANSLATIONS = {
   "Cliente creado": "Client created",
   "Cliente eliminado": "Client deleted",
   "Configuración actualizada": "Settings updated",
+  "Perfil completado": "Profile completed",
+  "Se completaron los datos obligatorios de la cuenta.": "The required account details were completed.",
   "Datos exportados": "Data exported",
   "Datos restaurados": "Data restored",
   "Cuenta creada con Google": "Account created with Google",
@@ -687,6 +697,25 @@ function formatFullName(profile) {
   return [profile?.name, profile?.surname].filter(Boolean).join(" ").trim();
 }
 
+function profileInitials(profile, fallback = "NM") {
+  const fullName = formatFullName(profile);
+  return fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase() || fallback;
+}
+
+function isWorkspaceProfileComplete(data) {
+  return Boolean(
+    data?.profile?.name?.trim() &&
+      data?.profile?.surname?.trim() &&
+      data?.profile?.taxId?.trim() &&
+      isValidPhone(data?.profile?.phone) &&
+      isValidEmail(data?.profile?.email) &&
+      data?.business?.name?.trim() &&
+      data?.business?.category?.trim() &&
+      data?.business?.address?.trim() &&
+      data?.business?.cuit?.trim()
+  );
+}
+
 function isValidPhone(phone) {
   const digits = onlyDigits(phone);
   return digits.length >= 8 && digits.length <= 15;
@@ -941,6 +970,45 @@ function Input({ label, value, onChange, type = "text", placeholder = "" }) {
         className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none transition placeholder:text-zinc-700 focus:border-white/25 focus:bg-white/[0.06]"
       />
     </label>
+  );
+}
+
+function ProfilePhotoInput({ photoURL, initials, onChange }) {
+  function handleFile(file) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      notify("Elegí una imagen válida para la foto de perfil.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => onChange(String(reader.result || ""));
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div>
+      <p className="mb-3 text-sm text-zinc-500">Foto de perfil</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-white/[0.06] font-mono text-lg text-white">
+          {photoURL ? (
+            <img src={photoURL} alt="Foto de perfil" className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+          ) : (
+            initials
+          )}
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <label className="cursor-pointer rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-white/25 hover:bg-white/[0.08]">
+            Cambiar foto
+            <input type="file" accept="image/*" className="sr-only" onChange={(event) => handleFile(event.target.files?.[0])} />
+          </label>
+          {photoURL && (
+            <button type="button" onClick={() => onChange("")} className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm text-zinc-400 transition hover:border-white/25 hover:text-white">
+              Quitar foto
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1254,6 +1322,7 @@ function AuthScreen({ onLogin }) {
           taxId: account.taxId,
           phone: account.phone,
           email,
+          photoURL: "",
         },
         business: {
           ...emptyData.business,
@@ -1354,6 +1423,7 @@ function AuthScreen({ onLogin }) {
         email,
         password: "google-auth",
         provider: "google",
+        photoURL: user.photoURL || "",
         createdAt: new Date().toISOString(),
       };
 
@@ -1364,6 +1434,7 @@ function AuthScreen({ onLogin }) {
           taxId: "",
           phone: "",
           email,
+          photoURL: user.photoURL || "",
         },
         history: [
           {
@@ -1382,6 +1453,15 @@ function AuthScreen({ onLogin }) {
     }
 
     data = normalizeStoredData(data || createEmptyData(), account);
+    if (!data.profile.photoURL && user.photoURL) {
+      data = {
+        ...data,
+        profile: {
+          ...data.profile,
+          photoURL: user.photoURL,
+        },
+      };
+    }
     writeJSON(dataKey(email), data);
     await saveCloudWorkspace(email, account, data);
 
@@ -1573,7 +1653,8 @@ function Topbar({
 }) {
   const [open, setOpen] = useState(false);
   const fullName = formatFullName(data.profile) || `${account.name || ""} ${account.surname || ""}`.trim();
-  const initials = fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "NM";
+  const initials = profileInitials(data.profile);
+  const photoURL = data.profile.photoURL || account.photoURL || "";
 
   return (
     <header className="sticky top-0 z-30 border-b border-white/10 bg-[#080808]/75 px-5 py-3 backdrop-blur-xl lg:px-8">
@@ -1628,7 +1709,9 @@ function Topbar({
           </button>
           <div className="hidden items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-300 sm:flex"><span className="h-2 w-2 rounded-full bg-emerald-400" />Sistema activo</div>
           <div className="relative">
-            <button onClick={() => { setOpen(!open); if (menuOpen) closeMenu(); }} className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-sm text-white">{initials}</button>
+            <button onClick={() => { setOpen(!open); if (menuOpen) closeMenu(); }} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-sm text-white">
+              {photoURL ? <img src={photoURL} alt={fullName || "Perfil"} className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initials}
+            </button>
             {open && (
               <div className="absolute right-0 top-14 w-[min(18rem,calc(100vw-2rem))] rounded-3xl border border-white/10 bg-zinc-950 p-3 shadow-2xl shadow-black/60">
                 <div className="border-b border-white/10 p-3"><p className="font-medium text-white">{fullName}</p><p className="mt-1 text-sm text-zinc-500">{data.profile.email || account.email}</p></div>
@@ -2722,6 +2805,11 @@ function Settings({ data, setData, account, exportData, resetData }) {
         <Panel className="p-6">
           <h3 className="text-xl font-semibold text-white">Datos personales</h3>
           <div className="mt-6 space-y-4">
+            <ProfilePhotoInput
+              photoURL={profile.photoURL || ""}
+              initials={profileInitials(profile)}
+              onChange={(photoURL) => setProfile({ ...profile, photoURL })}
+            />
             <Input label="Nombre" value={profile.name || ""} onChange={(v) => setProfile({ ...profile, name: toTitleCase(v) })} />
             <Input label="Apellido" value={profile.surname || ""} onChange={(v) => setProfile({ ...profile, surname: toTitleCase(v) })} />
             <Input label="CUIT / CUIL" value={profile.taxId || ""} onChange={(v) => setProfile({ ...profile, taxId: onlyDigits(v) })} />
@@ -2797,6 +2885,116 @@ function Settings({ data, setData, account, exportData, resetData }) {
         </div>
       </Panel>
     </div>
+  );
+}
+
+function CompleteGoogleProfile({ data, setData, account, onLogout }) {
+  const [profile, setProfile] = useState(data.profile);
+  const [business, setBusiness] = useState(data.business);
+  const [error, setError] = useState("");
+
+  function save(e) {
+    e.preventDefault();
+    setError("");
+
+    if (!profile.name?.trim() || !profile.surname?.trim()) {
+      setError("Completá nombre y apellido.");
+      return;
+    }
+    if (!profile.taxId?.trim()) {
+      setError("Completá CUIT / CUIL.");
+      return;
+    }
+    if (!isValidPhone(profile.phone)) {
+      setError("El teléfono debe tener entre 8 y 15 números.");
+      return;
+    }
+    if (!isValidEmail(profile.email || account.email)) {
+      setError("Completá un email válido.");
+      return;
+    }
+    if (!business.name?.trim() || !business.category?.trim() || !business.address?.trim() || !business.cuit?.trim()) {
+      setError("Completá todos los datos del negocio.");
+      return;
+    }
+
+    const nextProfile = {
+      ...profile,
+      name: toTitleCase(profile.name),
+      surname: toTitleCase(profile.surname),
+      taxId: onlyDigits(profile.taxId),
+      phone: onlyDigits(profile.phone),
+      email: normalizeEmail(profile.email || account.email),
+    };
+    const nextBusiness = {
+      ...business,
+      name: business.name.trim(),
+      category: business.category.trim(),
+      address: business.address.trim(),
+      cuit: onlyDigits(business.cuit),
+    };
+
+    setData((prev) =>
+      addHistory(
+        { ...prev, profile: nextProfile, business: nextBusiness },
+        "Sistema",
+        "Perfil completado",
+        "Se completaron los datos obligatorios de la cuenta."
+      )
+    );
+    notify("Perfil completado correctamente.");
+  }
+
+  return (
+    <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100">
+      <ToastHost />
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" />
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-5xl items-center px-4 py-10 sm:px-6">
+        <Panel className="w-full p-5 sm:p-8">
+          <div className="mb-8 flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.35em] text-zinc-600">Configuración inicial</p>
+              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl">Completá tus datos</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-500">
+                Para usar tu espacio con Google necesitamos completar los datos personales y del negocio. Estos datos se usan en órdenes, presupuestos y documentos.
+              </p>
+            </div>
+            <button type="button" onClick={onLogout} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-400 transition hover:border-white/25 hover:text-white">
+              Cerrar sesión
+            </button>
+          </div>
+
+          <form onSubmit={save} className="grid gap-6 xl:grid-cols-2">
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-white">Datos personales</h2>
+              <ProfilePhotoInput
+                photoURL={profile.photoURL || account.photoURL || ""}
+                initials={profileInitials(profile)}
+                onChange={(photoURL) => setProfile({ ...profile, photoURL })}
+              />
+              <Input label="Nombre" value={profile.name || ""} onChange={(v) => setProfile({ ...profile, name: toTitleCase(v) })} />
+              <Input label="Apellido" value={profile.surname || ""} onChange={(v) => setProfile({ ...profile, surname: toTitleCase(v) })} />
+              <Input label="CUIT / CUIL" value={profile.taxId || ""} onChange={(v) => setProfile({ ...profile, taxId: onlyDigits(v) })} />
+              <Input label="Teléfono" value={profile.phone || ""} onChange={(v) => setProfile({ ...profile, phone: onlyDigits(v) })} />
+              <Input label="Email" type="email" value={profile.email || account.email} onChange={(v) => setProfile({ ...profile, email: v })} />
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-white">Datos del negocio</h2>
+              <Input label="Nombre del negocio" value={business.name || ""} onChange={(v) => setBusiness({ ...business, name: v })} />
+              <Input label="Rubro" value={business.category || ""} onChange={(v) => setBusiness({ ...business, category: v })} />
+              <Input label="Dirección" value={business.address || ""} onChange={(v) => setBusiness({ ...business, address: v })} />
+              <Input label="CUIT / Identificación" value={business.cuit || ""} onChange={(v) => setBusiness({ ...business, cuit: onlyDigits(v) })} />
+            </div>
+
+            {error && <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-2.5 text-sm text-red-300 xl:col-span-2">{error}</div>}
+            <div className="xl:col-span-2">
+              <PrimaryButton type="submit" className="w-full sm:w-auto">Guardar y entrar</PrimaryButton>
+            </div>
+          </form>
+        </Panel>
+      </div>
+    </main>
   );
 }
 
@@ -2877,6 +3075,7 @@ function AppShell({ account, initialData, onLogout }) {
   }
   const exportData = useCallback(() => { const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `nexo-management-${todayISO()}.json`; a.click(); URL.revokeObjectURL(url); setData((prev) => addHistory(prev, "Sistema", "Datos exportados", "Se descargó una copia JSON.")); notify("Datos exportados correctamente."); }, [data]);
   const resetData = useCallback(async () => { if (!(await confirmAction("¿Seguro que querés restaurar clientes, presupuestos y órdenes?"))) return; setData(addHistory(createEmptyData({ profile: data.profile, business: data.business }), "Sistema", "Datos restaurados", "Se restauraron los datos operativos.")); notify("Datos restaurados correctamente."); }, [data.business, data.profile]);
+  const needsGoogleProfileCompletion = account.provider === "google" && !isWorkspaceProfileComplete(data);
   const content = useMemo(() => {
     if (search.trim()) return <GlobalSearchResults data={data} search={search} filter={searchFilter} setActive={setActive} clearSearch={() => setSearch("")} />;
     if (active === "dashboard") return <Dashboard data={data} setData={setData} />;
@@ -2889,6 +3088,7 @@ function AppShell({ account, initialData, onLogout }) {
   }, [active, data, search, searchFilter, setActive, account, exportData, resetData]);
   const toggleTheme = () => setTheme((value) => value === "dark" ? "light" : "dark");
   const toggleLanguage = () => setLanguage((value) => value === "es" ? "en" : "es");
+  if (needsGoogleProfileCompletion) return <CompleteGoogleProfile data={data} setData={setData} account={account} onLogout={onLogout} />;
   return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><MobileMenuDrawer open={menuOpen} closing={menuClosing} active={active} setActive={setActive} data={data} closeMenu={closeMenu} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} searchFilter={searchFilter} setSearchFilter={setSearchFilter} menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} account={account} data={data} setActive={setActive} onLogout={onLogout} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
 }
 
