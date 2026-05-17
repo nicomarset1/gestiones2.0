@@ -78,6 +78,7 @@ const EN_TRANSLATIONS = {
   "Creá tu espacio de trabajo": "Create your workspace",
   "Recuperá tu contraseña": "Recover your password",
   "Te enviamos un enlace oficial de Firebase para crear una nueva contraseña.": "We send you an official Firebase link to create a new password.",
+  "Recuperar acceso": "Recover access",
   "Nombre": "First name",
   "Apellido": "Last name",
   "CUIT / CUIL": "Tax ID",
@@ -1291,6 +1292,12 @@ function AuthScreen({ onLogin }) {
 
   const toggleLanguage = () => setLanguage((value) => value === "es" ? "en" : "es");
 
+  function switchMode(nextMode) {
+    setMode(nextMode);
+    setError("");
+    setMessage("");
+  }
+
   async function submit(e) {
     e.preventDefault();
     setError("");
@@ -1633,10 +1640,19 @@ function AuthScreen({ onLogin }) {
             {mode !== "reset" && <Input label="Contraseña" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} />}
             {error && <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">{error}</div>}
             {message && <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-300">{message}</div>}
+            {mode === "reset" && message && (
+              <button
+                type="button"
+                onClick={() => switchMode("login")}
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-white/25 hover:bg-white/[0.08]"
+              >
+                Iniciar sesión
+              </button>
+            )}
             {mode === "login" && (
               <button
                 type="button"
-                onClick={() => { setMode("reset"); setError(""); setMessage(""); }}
+                onClick={() => switchMode("reset")}
                 className="w-full text-right text-sm text-zinc-500 transition hover:text-zinc-200"
               >
                 ¿Olvidaste tu contraseña?
@@ -1664,7 +1680,7 @@ function AuthScreen({ onLogin }) {
             )}
             <PrimaryButton type="submit" className="w-full">{mode === "login" ? "Iniciar sesión" : mode === "register" ? "Crear cuenta" : "Enviar email de recuperación"}</PrimaryButton>
           </form>
-          <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setMessage(""); }} className="mt-5 w-full text-center text-sm text-zinc-500 transition hover:text-zinc-200">
+          <button onClick={() => switchMode(mode === "login" ? "register" : "login")} className="mt-5 w-full text-center text-sm text-zinc-500 transition hover:text-zinc-200">
             {mode === "login" ? "No tengo cuenta, crear una" : mode === "register" ? "Ya tengo cuenta, iniciar sesión" : "Volver al inicio de sesión"}
           </button>
         </Panel>
