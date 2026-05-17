@@ -76,12 +76,17 @@ const EN_TRANSLATIONS = {
   "Crear cuenta": "Create account",
   "Entrá a tu espacio": "Enter your workspace",
   "Creá tu espacio de trabajo": "Create your workspace",
+  "Recuperá tu contraseña": "Recover your password",
+  "Te enviamos un enlace oficial de Firebase para crear una nueva contraseña.": "We send you an official Firebase link to create a new password.",
   "Nombre": "First name",
   "Apellido": "Last name",
   "CUIT / CUIL": "Tax ID",
   "Teléfono": "Phone",
   "Nombre del negocio": "Business name",
   "Contraseña": "Password",
+  "¿Olvidaste tu contraseña?": "Forgot your password?",
+  "Enviar email de recuperación": "Send recovery email",
+  "Volver al inicio de sesión": "Back to sign in",
   "Continuar con Google": "Continue with Google",
   "Entrar como anónimo": "Enter as guest",
   "Foto de perfil": "Profile photo",
@@ -1259,6 +1264,7 @@ function openMonthlyReport({ data, month }) {
 function AuthScreen({ onLogin }) {
   const [mode, setMode] = useState("login");
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [form, setForm] = useState({
     name: "",
     surname: "",
@@ -1272,9 +1278,29 @@ function AuthScreen({ onLogin }) {
   async function submit(e) {
     e.preventDefault();
     setError("");
+    setMessage("");
     const email = form.email.trim().toLowerCase();
     const password = form.password;
     let accounts = readJSON(ACCOUNTS_KEY, []);
+
+    if (mode === "reset") {
+      if (!isValidEmail(email)) {
+        setError("Ingresá un email válido para recuperar la contraseña.");
+        return;
+      }
+      try {
+        const [{ auth }, { sendPasswordResetEmail }] = await Promise.all([
+          import("./firebase"),
+          import("firebase/auth"),
+        ]);
+        await sendPasswordResetEmail(auth, email);
+        setMessage("Te enviamos un email para restablecer tu contraseña. Revisá tu bandeja de entrada y spam.");
+        notify("Email de recuperación enviado.");
+      } catch (error) {
+        setError(error.code || error.message || "No se pudo enviar el email de recuperación.");
+      }
+      return;
+    }
 
     if (!email || !password) {
       setError("Completá email y contraseña.");
@@ -1560,8 +1586,9 @@ function AuthScreen({ onLogin }) {
         </div>
 
         <Panel className="p-4 sm:p-6">
-          <p className="text-xs uppercase tracking-[0.35em] text-zinc-600">{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</p>
-          <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">{mode === "login" ? "Entrá a tu espacio" : "Creá tu espacio de trabajo"}</h2>
+          <p className="text-xs uppercase tracking-[0.35em] text-zinc-600">{mode === "login" ? "Iniciar sesión" : mode === "register" ? "Crear cuenta" : "Recuperar acceso"}</p>
+          <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">{mode === "login" ? "Entrá a tu espacio" : mode === "register" ? "Creá tu espacio de trabajo" : "Recuperá tu contraseña"}</h2>
+          {mode === "reset" && <p className="mt-3 text-sm leading-6 text-zinc-500">Te enviamos un enlace oficial de Firebase para crear una nueva contraseña.</p>}
           <form onSubmit={submit} className="mt-6 space-y-4">
             {mode === "register" && (
               <>
@@ -1573,28 +1600,42 @@ function AuthScreen({ onLogin }) {
               </>
             )}
             <Input label="Email" type="email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
-            <Input label="Contraseña" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} />
+            {mode !== "reset" && <Input label="Contraseña" type="password" value={form.password} onChange={(v) => setForm({ ...form, password: v })} />}
             {error && <div className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-2.5 text-sm text-red-300">{error}</div>}
-            <button
-              type="button"
-              onClick={loginWithGoogle}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-white/25 hover:bg-white/[0.08]"
-            >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-black">G</span>
-              Continuar con Google
-            </button>
-            <button
-              type="button"
-              onClick={loginAnonymously}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/25 hover:bg-white/[0.07]"
-            >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full border border-white/20 text-[10px] font-bold text-white">AN</span>
-              Entrar como anónimo
-            </button>
-            <PrimaryButton type="submit" className="w-full">{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</PrimaryButton>
+            {message && <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-300">{message}</div>}
+            {mode === "login" && (
+              <button
+                type="button"
+                onClick={() => { setMode("reset"); setError(""); setMessage(""); }}
+                className="w-full text-right text-sm text-zinc-500 transition hover:text-zinc-200"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            )}
+            {mode !== "reset" && (
+              <>
+                <button
+                  type="button"
+                  onClick={loginWithGoogle}
+                  className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-white/25 hover:bg-white/[0.08]"
+                >
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-black">G</span>
+                  Continuar con Google
+                </button>
+                <button
+                  type="button"
+                  onClick={loginAnonymously}
+                  className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-2.5 text-sm font-medium text-zinc-300 transition hover:border-white/25 hover:bg-white/[0.07]"
+                >
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full border border-white/20 text-[10px] font-bold text-white">AN</span>
+                  Entrar como anónimo
+                </button>
+              </>
+            )}
+            <PrimaryButton type="submit" className="w-full">{mode === "login" ? "Iniciar sesión" : mode === "register" ? "Crear cuenta" : "Enviar email de recuperación"}</PrimaryButton>
           </form>
-          <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }} className="mt-5 w-full text-center text-sm text-zinc-500 transition hover:text-zinc-200">
-            {mode === "login" ? "No tengo cuenta, crear una" : "Ya tengo cuenta, iniciar sesión"}
+          <button onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); setMessage(""); }} className="mt-5 w-full text-center text-sm text-zinc-500 transition hover:text-zinc-200">
+            {mode === "login" ? "No tengo cuenta, crear una" : mode === "register" ? "Ya tengo cuenta, iniciar sesión" : "Volver al inicio de sesión"}
           </button>
         </Panel>
       </div>
