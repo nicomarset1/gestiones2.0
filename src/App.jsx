@@ -1353,7 +1353,10 @@ function AuthScreen({ onLogin }) {
           import("./firebase"),
           import("firebase/auth"),
         ]);
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(auth, email, {
+          url: window.location.origin,
+          handleCodeInApp: false,
+        });
         setMessage("Te enviamos un email para restablecer tu contraseña. Revisá tu bandeja de entrada y spam.");
         notify("Email de recuperación enviado.");
       } catch (error) {

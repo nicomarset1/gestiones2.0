@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function hasEmail() {
+      return signedIn()
+        && request.auth.token.email != null;
+    }
+
+    function ownsWorkspace(workspaceId) {
+      return hasEmail()
+        && request.auth.token.email.lower() == workspaceId;
+    }
+
+    function validWorkspacePayload() {
+      return request.resource.data.keys().hasOnly([
+        "account",
+        "data",
+        "email",
+        "updatedAt"
+      ])
+      && request.resource.data.email is string
+      && request.resource.data.email == request.auth.token.email.lower()
+      && request.resource.data.account is map
+      && request.resource.data.data is map;
+    }
+
+    match /workspaces/{workspaceId} {
+      allow get: if ownsWorkspace(workspaceId);
+      allow list: if false;
+      allow create, update: if ownsWorkspace(workspaceId) && validWorkspacePayload();
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
