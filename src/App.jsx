@@ -82,7 +82,6 @@ const EN_TRANSLATIONS = {
   "Nombre del negocio": "Business name",
   "Contraseña": "Password",
   "Continuar con Google": "Continue with Google",
-  "Continuar con Apple": "Continue with Apple",
   "Entrar como anónimo": "Enter as guest",
   "No tengo cuenta, crear una": "I do not have an account, create one",
   "Ya tengo cuenta, iniciar sesión": "I already have an account, sign in",
@@ -273,8 +272,6 @@ const EN_TRANSLATIONS = {
   "Datos restaurados": "Data restored",
   "Cuenta creada con Google": "Account created with Google",
   "Se creó el espacio de trabajo usando inicio de sesión con Google.": "The workspace was created using Google sign-in.",
-  "Cuenta creada con Apple": "Account created with Apple",
-  "Se creó el espacio de trabajo usando inicio de sesión con Apple.": "The workspace was created using Apple sign-in.",
   "Sesión anónima creada": "Guest session created",
   "Se cargaron datos demo para visualizar la aplicación.": "Demo data was loaded to preview the application.",
   "Clientes demo cargados": "Demo clients loaded",
@@ -1332,8 +1329,8 @@ function AuthScreen({ onLogin }) {
     onLogin(account, data);
   }
 
-  const finishProviderLogin = useCallback(async (result, providerName) => {
-    const label = providerName === "apple" ? "Apple" : "Google";
+  const finishProviderLogin = useCallback(async (result) => {
+    const label = "Google";
     const user = result.user;
     const email = user.email?.toLowerCase();
     if (!email) return notify(`No se pudo obtener el email de ${label}.`);
@@ -1355,8 +1352,8 @@ function AuthScreen({ onLogin }) {
         taxId: "",
         phone: "",
         email,
-        password: `${providerName}-auth`,
-        provider: providerName,
+        password: "google-auth",
+        provider: "google",
         createdAt: new Date().toISOString(),
       };
 
@@ -1397,17 +1394,15 @@ function AuthScreen({ onLogin }) {
     let cancelled = false;
     async function completeRedirectLogin() {
       try {
-        const [{ auth }, { getRedirectResult, OAuthProvider, GoogleAuthProvider }] = await Promise.all([
+        const [{ auth }, { getRedirectResult, GoogleAuthProvider }] = await Promise.all([
           import("./firebase"),
           import("firebase/auth"),
         ]);
         const result = await getRedirectResult(auth);
         if (!result || cancelled) return;
-        const providerId =
-          OAuthProvider.credentialFromResult(result)?.providerId ||
-          GoogleAuthProvider.credentialFromResult(result)?.providerId ||
-          result.providerId;
-        await finishProviderLogin(result, providerId === "apple.com" ? "apple" : "google");
+        const providerId = GoogleAuthProvider.credentialFromResult(result)?.providerId || result.providerId;
+        if (providerId && providerId !== "google.com") return;
+        await finishProviderLogin(result);
       } catch (error) {
         if (!cancelled) {
           console.error("Error OAuth redirect:", error);
@@ -1421,45 +1416,35 @@ function AuthScreen({ onLogin }) {
     };
   }, [finishProviderLogin]);
 
-  async function loginWithProvider(providerName) {
+  async function loginWithGoogle() {
     try {
-      const [{ auth, googleProvider, appleProvider }, { signInWithPopup }] = await Promise.all([
+      const [{ auth, googleProvider }, { signInWithPopup }] = await Promise.all([
         import("./firebase"),
         import("firebase/auth"),
       ]);
 
-      const provider = providerName === "apple" ? appleProvider : googleProvider;
-      const result = await signInWithPopup(auth, provider);
-      await finishProviderLogin(result, providerName);
+      const result = await signInWithPopup(auth, googleProvider);
+      await finishProviderLogin(result);
     } catch (error) {
       const shouldRedirect = ["auth/popup-blocked", "auth/popup-closed-by-user", "auth/cancelled-popup-request"].includes(error.code);
-      if (providerName === "apple" || shouldRedirect) {
+      if (shouldRedirect) {
         try {
-          const [{ auth, googleProvider, appleProvider }, { signInWithRedirect }] = await Promise.all([
+          const [{ auth, googleProvider }, { signInWithRedirect }] = await Promise.all([
             import("./firebase"),
             import("firebase/auth"),
           ]);
-          const provider = providerName === "apple" ? appleProvider : googleProvider;
-          await signInWithRedirect(auth, provider);
+          await signInWithRedirect(auth, googleProvider);
           return;
         } catch (redirectError) {
-          console.error(`Error ${providerName} redirect:`, redirectError);
-          notify(redirectError.code || redirectError.message || `Error al iniciar sesión con ${providerName === "apple" ? "Apple" : "Google"}.`);
+          console.error("Error Google redirect:", redirectError);
+          notify(redirectError.code || redirectError.message || "Error al iniciar sesión con Google.");
           return;
         }
       }
 
-      console.error(`Error ${providerName} Auth:`, error);
-      notify(error.code || error.message || `Error al iniciar sesión con ${providerName === "apple" ? "Apple" : "Google"}.`);
+      console.error("Error Google Auth:", error);
+      notify(error.code || error.message || "Error al iniciar sesión con Google.");
     }
-  }
-
-  function loginWithGoogle() {
-    return loginWithProvider("google");
-  }
-
-  function loginWithApple() {
-    return loginWithProvider("apple");
   }
 
   async function loginAnonymously() {
@@ -1528,14 +1513,6 @@ function AuthScreen({ onLogin }) {
             >
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-black">G</span>
               Continuar con Google
-            </button>
-            <button
-              type="button"
-              onClick={loginWithApple}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-white/25 hover:bg-white/[0.08]"
-            >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-bold text-black"></span>
-              Continuar con Apple
             </button>
             <button
               type="button"
