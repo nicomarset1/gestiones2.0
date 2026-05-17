@@ -306,6 +306,9 @@ const EN_TRANSLATIONS = {
   "Se completaron los datos obligatorios de la cuenta.": "The required account details were completed.",
   "Datos exportados": "Data exported",
   "Datos restaurados": "Data restored",
+  "Cuenta creada. Te enviamos un link de verificación al email. Confirmalo y después iniciá sesión.": "Account created. We sent a verification link to your email. Confirm it, then sign in.",
+  "Email de verificación enviado.": "Verification email sent.",
+  "Tenés que verificar tu email antes de iniciar sesión. Revisá tu bandeja de entrada y spam.": "You need to verify your email before signing in. Check your inbox and spam folder.",
   "Cuenta creada con Google": "Account created with Google",
   "Se creó el espacio de trabajo usando inicio de sesión con Google.": "The workspace was created using Google sign-in.",
   "Sesión anónima creada": "Guest session created",
@@ -1444,8 +1447,8 @@ function AuthScreen({ onLogin }) {
       } catch {
         // The app session is still kept closed locally until the email is verified.
       }
-      setMessage("Cuenta creada. Te enviamos un link de verificaciÃ³n al email. Confirmalo y despuÃ©s iniciÃ¡ sesiÃ³n.");
-      notify("Email de verificaciÃ³n enviado.");
+      setMessage("Cuenta creada. Te enviamos un link de verificación al email. Confirmalo y después iniciá sesión.");
+      notify("Email de verificación enviado.");
       setMode("login");
       return;
     }
@@ -1462,7 +1465,7 @@ function AuthScreen({ onLogin }) {
       await user.reload();
       if (!user.emailVerified) {
         await signOut(auth);
-        setError("TenÃ©s que verificar tu email antes de iniciar sesiÃ³n. RevisÃ¡ tu bandeja de entrada y spam.");
+        setError("Tenés que verificar tu email antes de iniciar sesión. Revisá tu bandeja de entrada y spam.");
         return;
       }
       cloudWorkspace = await loadCloudWorkspace(email);
@@ -1491,7 +1494,7 @@ function AuthScreen({ onLogin }) {
       // Fallback for workspaces created before Firebase email/password auth was enabled.
     }
     if (account?.emailVerified === false) {
-      setError("TenÃ©s que verificar tu email antes de iniciar sesiÃ³n. RevisÃ¡ tu bandeja de entrada y spam.");
+      setError("Tenés que verificar tu email antes de iniciar sesión. Revisá tu bandeja de entrada y spam.");
       return;
     }
     if (!account) {
@@ -1499,7 +1502,7 @@ function AuthScreen({ onLogin }) {
       if (cloudWorkspace?.account?.password === password) {
         account = cloudWorkspace.account;
         if (account.emailVerified === false) {
-          setError("TenÃ©s que verificar tu email antes de iniciar sesiÃ³n. RevisÃ¡ tu bandeja de entrada y spam.");
+          setError("Tenés que verificar tu email antes de iniciar sesión. Revisá tu bandeja de entrada y spam.");
           return;
         }
         accounts = [account, ...accounts.filter((item) => item.email !== email)];
