@@ -51,8 +51,8 @@ const emptyData = {
 
 const BUSINESS_PRESETS = {
   services: {
-    label: "Servicios",
-    description: "Clientes, presupuestos, trabajos, pagos y resumen mensual.",
+    label: "Servicios básico",
+    description: "Clientes, presupuestos, trabajos, pagos y resumen mensual. La experiencia más simple.",
     modules: {
       clients: true,
       budgets: true,
@@ -67,55 +67,55 @@ const BUSINESS_PRESETS = {
       reports: false,
     },
   },
-  simpleSales: {
-    label: "Ventas simples",
-    description: "Ventas rapidas, clientes, gastos y reportes sin stock obligatorio.",
-    modules: {
-      clients: true,
-      budgets: false,
-      orders: false,
-      monthly: true,
-      products: true,
-      sales: true,
-      inventory: false,
-      expenses: true,
-      suppliers: false,
-      cash: false,
-      reports: true,
-    },
-  },
-  commerce: {
-    label: "Comercio con stock",
-    description: "Productos, inventario, ventas, proveedores, gastos, caja y reportes.",
-    modules: {
-      clients: true,
-      budgets: false,
-      orders: false,
-      monthly: true,
-      products: true,
-      sales: true,
-      inventory: true,
-      expenses: true,
-      suppliers: true,
-      cash: true,
-      reports: true,
-    },
-  },
-  mixed: {
-    label: "Mixto",
-    description: "Servicios y ventas en el mismo espacio de trabajo.",
+  servicesPlus: {
+    label: "Servicios completo",
+    description: "Suma gastos, caja simple y reportes sin meterse en ventas masivas ni stock.",
     modules: {
       clients: true,
       budgets: true,
       orders: true,
       monthly: true,
-      products: true,
-      sales: true,
-      inventory: true,
+      products: false,
+      sales: false,
+      inventory: false,
+      expenses: true,
+      suppliers: false,
+      cash: true,
+      reports: true,
+    },
+  },
+  workshop: {
+    label: "Taller / service",
+    description: "Para trabajos con insumos, proveedores, gastos, caja y seguimiento de cobros.",
+    modules: {
+      clients: true,
+      budgets: true,
+      orders: true,
+      monthly: true,
+      products: false,
+      sales: false,
+      inventory: false,
       expenses: true,
       suppliers: true,
       cash: true,
       reports: true,
+    },
+  },
+  custom: {
+    label: "Personalizado",
+    description: "Activa solo los apartados que realmente usás en tu negocio.",
+    modules: {
+      clients: true,
+      budgets: true,
+      orders: true,
+      monthly: true,
+      products: false,
+      sales: false,
+      inventory: false,
+      expenses: false,
+      suppliers: false,
+      cash: false,
+      reports: false,
     },
   },
 };
@@ -168,8 +168,6 @@ const navItems = [
   { id: "clients", label: "Clientes", icon: "CL", module: "clients" },
   { id: "budgets", label: "Presupuestos", icon: "PR", module: "budgets" },
   { id: "orders", label: "Ordenes y Pagos", icon: "OP", module: "orders" },
-  { id: "products", label: "Productos", icon: "PD", module: "products" },
-  { id: "sales", label: "Ventas", icon: "VT", module: "sales" },
   { id: "expenses", label: "Gastos", icon: "GS", module: "expenses" },
   { id: "suppliers", label: "Proveedores", icon: "PV", module: "suppliers" },
   { id: "cash", label: "Caja diaria", icon: "CJ", module: "cash" },
@@ -185,6 +183,90 @@ const BUDGET_STATUS = ["Pendiente", "Convertido", "Rechazado"];
 const ORDER_OVERDUE_DAYS = 7;
 
 const EN_TRANSLATIONS = {
+  "Servicios básico": "Basic services",
+  "Clientes, presupuestos, trabajos, pagos y resumen mensual. La experiencia más simple.": "Clients, estimates, jobs, payments, and monthly summary. The simplest experience.",
+  "Servicios completo": "Complete services",
+  "Suma gastos, caja simple y reportes sin meterse en ventas masivas ni stock.": "Adds expenses, simple cash control, and reports without mass sales or stock.",
+  "Taller / service": "Workshop / service",
+  "Para trabajos con insumos, proveedores, gastos, caja y seguimiento de cobros.": "For jobs with supplies, vendors, expenses, cash control, and payment tracking.",
+  "Personalizado": "Custom",
+  "Activa solo los apartados que realmente usás en tu negocio.": "Enable only the sections you actually use in your business.",
+  "Ordenes y Pagos": "Orders and Payments",
+  "Gastos": "Expenses",
+  "Proveedores": "Vendors",
+  "Caja diaria": "Daily Cash",
+  "Reportes": "Reports",
+  "Configuracion": "Settings",
+  "Buscar clientes, trabajos, gastos, pagos...": "Search clients, jobs, expenses, payments...",
+  "Egresos del negocio": "Business expenses",
+  "Registra alquiler, insumos, compras, publicidad y cualquier salida de dinero.": "Record rent, supplies, purchases, ads, and any money going out.",
+  "Gastos del mes": "Monthly expenses",
+  "Categorias": "Categories",
+  "Orden de egresos": "Expense organization",
+  "Nuevo gasto": "New expense",
+  "Descripcion": "Description",
+  "Categoria": "Category",
+  "Ej: insumos, alquiler": "E.g. supplies, rent",
+  "Proveedor": "Vendor",
+  "Sin proveedor": "No vendor",
+  "Metodo de pago": "Payment method",
+  "Efectivo": "Cash",
+  "Transferencia": "Bank transfer",
+  "Mercado Pago": "Mercado Pago",
+  "Tarjeta": "Card",
+  "Registrar gasto": "Record expense",
+  "Gastos recientes": "Recent expenses",
+  "Sin gastos": "No expenses",
+  "Los egresos registrados van a aparecer aca.": "Recorded expenses will appear here.",
+  "Sin categoria": "No category",
+  "Contactos de compra": "Purchasing contacts",
+  "Guarda mayoristas, distribuidores y servicios vinculados a compras o gastos.": "Save wholesalers, distributors, and services linked to purchases or expenses.",
+  "Nuevo proveedor": "New vendor",
+  "Telefono": "Phone",
+  "Agregar proveedor": "Add vendor",
+  "Proveedores registrados": "Registered vendors",
+  "Sin proveedores": "No vendors",
+  "Carga proveedores para vincularlos con gastos y compras.": "Add vendors to link them with expenses and purchases.",
+  "Control del dia": "Daily control",
+  "Abre y cierra caja para comparar efectivo esperado contra dinero real.": "Open and close cash to compare expected cash with actual cash.",
+  "Saldo inicial": "Opening balance",
+  "Caja abierta": "Cash open",
+  "Sin caja abierta": "No open cash",
+  "Gastos hoy": "Expenses today",
+  "Egresos del dia": "Daily outflows",
+  "Esperado": "Expected",
+  "Saldo calculado": "Calculated balance",
+  "Cerrar caja": "Close cash",
+  "Dinero real al cierre": "Actual cash at close",
+  "Abrir caja": "Open cash",
+  "Cierres anteriores": "Previous closings",
+  "Sin cajas": "No cash sessions",
+  "Cuando abras y cierres caja, el historial aparecera aca.": "When you open and close cash, the history will appear here.",
+  "Cerrada": "Closed",
+  "Abierta": "Open",
+  "Activa": "Active",
+  "Lectura del negocio": "Business overview",
+  "Una vista compacta de trabajos, cobros, gastos y resultado operativo.": "A compact view of jobs, payments, expenses, and operating result.",
+  "Servicios": "Services",
+  "Ordenes del mes": "Monthly orders",
+  "Egresos del mes": "Monthly outflows",
+  "Resultado bruto": "Gross result",
+  "Ingresos menos gastos": "Income minus expenses",
+  "Cobros hoy": "Payments today",
+  "Ingresos del dia": "Daily income",
+  "Clientes con saldo abierto": "Clients with open balance",
+  "Gastos por categoria": "Expenses by category",
+  "Sin gastos registrados": "No recorded expenses",
+  "Cuando registres gastos, vas a ver el total por categoría.": "When you record expenses, you will see the total by category.",
+  "Gasto registrado": "Expense recorded",
+  "Proveedor creado": "Vendor created",
+  "Caja cerrada": "Cash closed",
+  "Diferencia:": "Difference:",
+  "Completa descripcion e importe.": "Complete description and amount.",
+  "Completa el nombre del proveedor.": "Complete the vendor name.",
+  "Ya hay una caja abierta.": "There is already an open cash session.",
+  "Tipo de negocio y modulos": "Business type and modules",
+  "Elegí un perfil para que la app muestre solo lo necesario. Después podés ajustar cada módulo manualmente.": "Choose a profile so the app only shows what is needed. You can adjust each module manually later.",
   "Sistema web de gestión operativa": "Operations management web system",
   "Centralizá clientes, presupuestos, órdenes, pagos, historial y resumen mensual desde una interfaz profesional, clara y funcional.": "Centralize clients, estimates, orders, payments, history, and monthly summaries from a professional, clear, functional interface.",
   "Primeros pasos": "First steps",
@@ -500,6 +582,9 @@ function translateText(value, language) {
   const matches = text.match(/^(\d+)\s+coincidencias para "(.+)"\.$/);
   if (matches) return `${matches[1]} matches for "${matches[2]}".`;
 
+  const movements = text.match(/^(\d+)\s+movimientos$/);
+  if (movements) return `${movements[1]} movements`;
+
   const monthlyView = text.match(/^Vista mensual del estado operativo, financiero y comercial de (.+)\.$/);
   if (monthlyView) return `Monthly view of operational, financial, and commercial status for ${translateText(monthlyView[1], language)}.`;
 
@@ -550,11 +635,20 @@ function translateText(value, language) {
     .replaceAll("Presupuestos", "Estimates")
     .replaceAll("presupuestos", "estimates")
     .replaceAll("Órdenes", "Orders")
+    .replaceAll("Ordenes", "Orders")
     .replaceAll("órdenes", "orders")
+    .replaceAll("ordenes", "orders")
     .replaceAll("Orden", "Order")
     .replaceAll("orden", "order")
     .replaceAll("Cliente", "Client")
     .replaceAll("cliente", "client")
+    .replaceAll("Gastos", "Expenses")
+    .replaceAll("Gasto", "Expense")
+    .replaceAll("gastos", "expenses")
+    .replaceAll("gasto", "expense")
+    .replaceAll("Proveedor", "Vendor")
+    .replaceAll("proveedor", "vendor")
+    .replaceAll("Caja", "Cash")
     .replaceAll("Pendiente", "Pending")
     .replaceAll("pendiente", "pending")
     .replaceAll("Pagado", "Paid")
@@ -1080,6 +1174,9 @@ function getEnabledModules(data) {
   return {
     ...DEFAULT_MODULES,
     ...(data?.business?.enabledModules || {}),
+    products: false,
+    sales: false,
+    inventory: false,
   };
 }
 
@@ -1923,15 +2020,15 @@ function AuthScreen({ onLogin }) {
 function Sidebar({ active, setActive, data }) {
   const visibleNav = getVisibleNavItems(data);
   return (
-    <aside className="fixed left-0 top-0 z-40 hidden h-screen w-72 border-r border-white/10 bg-[#090909]/95 p-5 backdrop-blur-xl lg:block">
-      <div className="mb-9 flex items-center gap-3">
+    <aside className="fixed left-0 top-0 z-40 hidden h-screen w-72 flex-col border-r border-white/10 bg-[#090909]/95 p-5 backdrop-blur-xl lg:flex">
+      <div className="mb-7 flex shrink-0 items-center gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-lg text-white">NM</div>
         <div>
           <p className="font-semibold text-white">{data.business.name || "Nexo Management"}</p>
           <p className="text-xs uppercase tracking-[0.2em] text-zinc-600">Sistema web de gestión operativa</p>
         </div>
       </div>
-      <nav className="space-y-2">
+      <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
         {visibleNav.map((item) => (
           <button key={item.id} onClick={() => setActive(item.id)} className={`flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left text-sm transition ${active === item.id ? "border border-white/10 bg-white/[0.08] text-white" : "text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-200"}`}>
             <span className="font-mono text-sm">{item.icon}</span>{item.label}
@@ -1982,7 +2079,7 @@ function Topbar({
           <span className="h-0.5 w-5 rounded-full bg-zinc-200" />
         </button>
         <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_5.75rem] gap-2 md:max-w-2xl md:grid-cols-[minmax(0,1fr)_7rem]">
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar clientes, ventas, productos, pagos..." className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-white/25" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar clientes, trabajos, gastos, pagos..." className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-white/25" />
           <select aria-label="Filtrar búsqueda" title="Filtrar" value={searchFilter} onChange={(e) => setSearchFilter(e.target.value)} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] px-2 py-2.5 text-xs font-medium text-zinc-300 outline-none sm:px-3">
             <option className="bg-zinc-950" value="all">Filtrar</option>
             {searchOptions.map((item) => <option key={item.id} className="bg-zinc-950" value={item.id}>{item.label}</option>)}
@@ -3000,6 +3097,8 @@ function OrdersTable({ orders, compact = false, data, onEdit, onDelete, onFinish
   );
 }
 
+// Hidden for now: Nexo is focused on services, not POS/inventory.
+// eslint-disable-next-line no-unused-vars
 function Products({ data, setData, search }) {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: "", category: "", cost: "", price: "", stock: "", minStock: "", tracksStock: true });
@@ -3109,6 +3208,8 @@ function Products({ data, setData, search }) {
   );
 }
 
+// Hidden for now: mass sales require a dedicated POS flow.
+// eslint-disable-next-line no-unused-vars
 function Sales({ data, setData, search }) {
   const [form, setForm] = useState({ productId: "", quantity: "1", amount: "", paymentMethod: "Efectivo", client: "", notes: "" });
   const query = search.trim().toLowerCase();
@@ -3189,6 +3290,8 @@ function Expenses({ data, setData, search }) {
   const [form, setForm] = useState({ description: "", category: "", amount: "", supplier: "", paymentMethod: "Efectivo" });
   const query = search.trim().toLowerCase();
   const expenses = (data.expenses || []).filter((expense) => [expense.description, expense.category, expense.supplier, expense.paymentMethod].join(" ").toLowerCase().includes(query));
+  const categoryListId = "expense-categories";
+  const categories = [...new Set(["Insumos", "Alquiler", "Servicios", "Publicidad", "Transporte", ...(data.expenses || []).map((expense) => expense.category).filter(Boolean)])];
 
   function submit(e) {
     e.preventDefault();
@@ -3208,7 +3311,7 @@ function Expenses({ data, setData, search }) {
       <PageHeader label="Gastos" title="Egresos del negocio" text="Registra alquiler, insumos, compras, publicidad y cualquier salida de dinero." />
       <div className="grid gap-4 md:grid-cols-2"><StatCard label="Gastos del mes" value={currency(total)} meta={`${monthExpenses.length} movimientos`} icon="GS" /><StatCard label="Categorias" value={new Set(expenses.map((expense) => expense.category).filter(Boolean)).size} meta="Orden de egresos" icon="CT" /></div>
       <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
-        <Panel className="p-5"><h3 className="text-xl font-semibold text-white">Nuevo gasto</h3><form onSubmit={submit} className="mt-5 space-y-4"><Input label="Descripcion" value={form.description} onChange={(v) => setForm({ ...form, description: v })} /><Input label="Categoria" value={form.category} onChange={(v) => setForm({ ...form, category: v })} placeholder="Ej: insumos, alquiler" /><Input label="Importe" value={form.amount} onChange={(v) => setForm({ ...form, amount: formatARSInput(v) })} /><Select label="Proveedor" value={form.supplier} onChange={(v) => setForm({ ...form, supplier: v })} options={[{ value: "", label: "Sin proveedor" }, ...(data.suppliers || []).map((supplier) => ({ value: supplier.name, label: supplier.name }))]} /><Select label="Metodo de pago" value={form.paymentMethod} onChange={(v) => setForm({ ...form, paymentMethod: v })} options={["Efectivo", "Transferencia", "Mercado Pago", "Tarjeta"].map((value) => ({ value, label: value }))} /><PrimaryButton type="submit" className="w-full">Registrar gasto</PrimaryButton></form></Panel>
+        <Panel className="p-5"><h3 className="text-xl font-semibold text-white">Nuevo gasto</h3><form onSubmit={submit} className="mt-5 space-y-4"><Input label="Descripcion" value={form.description} onChange={(v) => setForm({ ...form, description: v })} /><label className="block"><span className="mb-2 block text-sm text-zinc-500">Categoria</span><input list={categoryListId} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="Ej: insumos, alquiler" className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-zinc-200 outline-none transition placeholder:text-zinc-700 focus:border-white/25 focus:bg-white/[0.06]" /><datalist id={categoryListId}>{categories.map((category) => <option key={category} value={category} />)}</datalist></label><Input label="Importe" value={form.amount} onChange={(v) => setForm({ ...form, amount: formatARSInput(v) })} /><Select label="Proveedor" value={form.supplier} onChange={(v) => setForm({ ...form, supplier: v })} options={[{ value: "", label: "Sin proveedor" }, ...(data.suppliers || []).map((supplier) => ({ value: supplier.name, label: supplier.name }))]} /><Select label="Metodo de pago" value={form.paymentMethod} onChange={(v) => setForm({ ...form, paymentMethod: v })} options={["Efectivo", "Transferencia", "Mercado Pago", "Tarjeta"].map((value) => ({ value, label: value }))} /><PrimaryButton type="submit" className="w-full">Registrar gasto</PrimaryButton></form></Panel>
         <Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Gastos recientes</h3></div>{expenses.length === 0 ? <EmptyState title="Sin gastos" text="Los egresos registrados van a aparecer aca." /> : <div className="divide-y divide-white/10">{expenses.slice(0, 30).map((expense) => <div key={expense.id} className="grid gap-2 p-4 md:grid-cols-[1fr_auto]"><div><p className="font-medium text-white">{expense.description}</p><p className="mt-1 text-sm text-zinc-500">{dateLabel(expense.date)} - {expense.category || "Sin categoria"}{expense.supplier ? ` - ${expense.supplier}` : ""}</p></div><p className="font-semibold text-red-300">-{currency(expense.amount)}</p></div>)}</div>}</Panel>
       </div>
     </div>
@@ -3244,9 +3347,9 @@ function Cash({ data, setData }) {
   const openSession = (data.cashSessions || []).find((session) => !session.closedAt);
   const [openingAmount, setOpeningAmount] = useState("");
   const [closingAmount, setClosingAmount] = useState("");
-  const todaySales = (data.sales || []).filter((sale) => sale.date === todayISO()).reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+  const todayIncome = (data.orders || []).filter((order) => order.date === todayISO()).reduce((sum, order) => sum + getPaidAmount(order), 0);
   const todayExpenses = (data.expenses || []).filter((expense) => expense.date === todayISO()).reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-  const expected = Number(openSession?.openingAmount || 0) + todaySales - todayExpenses;
+  const expected = Number(openSession?.openingAmount || 0) + todayIncome - todayExpenses;
 
   function openCash(e) {
     e.preventDefault();
@@ -3260,14 +3363,14 @@ function Cash({ data, setData }) {
     e.preventDefault();
     if (!openSession) return;
     const real = parseARS(closingAmount);
-    setData((prev) => addHistory({ ...prev, cashSessions: (prev.cashSessions || []).map((session) => session.id === openSession.id ? { ...session, closedAt: new Date().toISOString(), salesTotal: todaySales, expensesTotal: todayExpenses, expectedAmount: expected, closingAmount: real, difference: real - expected } : session) }, "Caja", "Caja cerrada", `Diferencia: ${currency(real - expected)}`));
+    setData((prev) => addHistory({ ...prev, cashSessions: (prev.cashSessions || []).map((session) => session.id === openSession.id ? { ...session, closedAt: new Date().toISOString(), incomeTotal: todayIncome, expensesTotal: todayExpenses, expectedAmount: expected, closingAmount: real, difference: real - expected } : session) }, "Caja", "Caja cerrada", `Diferencia: ${currency(real - expected)}`));
     setClosingAmount("");
   }
 
   return (
     <div className="space-y-6">
       <PageHeader label="Caja diaria" title="Control del dia" text="Abre y cierra caja para comparar efectivo esperado contra dinero real." />
-      <div className="grid gap-4 md:grid-cols-4"><StatCard label="Saldo inicial" value={currency(openSession?.openingAmount || 0)} meta={openSession ? "Caja abierta" : "Sin caja abierta"} icon="IN" /><StatCard label="Ventas hoy" value={currency(todaySales)} meta="Ingresos del dia" icon="VT" /><StatCard label="Gastos hoy" value={currency(todayExpenses)} meta="Egresos del dia" icon="GS" /><StatCard label="Esperado" value={currency(expected)} meta="Saldo calculado" icon="CJ" /></div>
+      <div className="grid gap-4 md:grid-cols-4"><StatCard label="Saldo inicial" value={currency(openSession?.openingAmount || 0)} meta={openSession ? "Caja abierta" : "Sin caja abierta"} icon="IN" /><StatCard label="Cobros hoy" value={currency(todayIncome)} meta="Ingresos del dia" icon="OK" /><StatCard label="Gastos hoy" value={currency(todayExpenses)} meta="Egresos del dia" icon="GS" /><StatCard label="Esperado" value={currency(expected)} meta="Saldo calculado" icon="CJ" /></div>
       <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
         <Panel className="p-5">{openSession ? <form onSubmit={closeCash} className="space-y-4"><h3 className="text-xl font-semibold text-white">Cerrar caja</h3><Input label="Dinero real al cierre" value={closingAmount} onChange={(v) => setClosingAmount(formatARSInput(v))} /><PrimaryButton type="submit" className="w-full">Cerrar caja</PrimaryButton></form> : <form onSubmit={openCash} className="space-y-4"><h3 className="text-xl font-semibold text-white">Abrir caja</h3><Input label="Saldo inicial" value={openingAmount} onChange={(v) => setOpeningAmount(formatARSInput(v))} /><PrimaryButton type="submit" className="w-full">Abrir caja</PrimaryButton></form>}</Panel>
         <Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Cierres anteriores</h3></div>{(data.cashSessions || []).length === 0 ? <EmptyState title="Sin cajas" text="Cuando abras y cierres caja, el historial aparecera aca." /> : <div className="divide-y divide-white/10">{(data.cashSessions || []).map((session) => <div key={session.id} className="grid gap-2 p-4 md:grid-cols-[1fr_auto]"><div><p className="font-medium text-white">{dateLabel(session.date)}</p><p className="mt-1 text-sm text-zinc-500">{session.closedAt ? "Cerrada" : "Abierta"} - Esperado {currency(session.expectedAmount || session.openingAmount || 0)}</p></div><Badge tone={session.closedAt && Number(session.difference || 0) !== 0 ? "warning" : "success"}>{session.closedAt ? currency(session.difference || 0) : "Activa"}</Badge></div>)}</div>}</Panel>
@@ -3278,27 +3381,26 @@ function Cash({ data, setData }) {
 
 function Reports({ data }) {
   const month = new Date().toISOString().slice(0, 7);
-  const monthSales = (data.sales || []).filter((sale) => monthKey(sale.date) === month);
   const monthExpenses = (data.expenses || []).filter((expense) => monthKey(expense.date) === month);
-  const salesTotal = monthSales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
   const expensesTotal = monthExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-  const serviceTotal = (data.orders || []).filter((order) => monthKey(order.date) === month).reduce((sum, order) => sum + Number(order.total || 0), 0);
-  const lowStock = (data.products || []).filter((product) => product.tracksStock && productStock(product) <= Number(product.minStock || 0));
-  const topProducts = Object.values(monthSales.reduce((acc, sale) => {
-    const key = sale.productName || "Venta manual";
-    acc[key] = acc[key] || { name: key, quantity: 0, amount: 0 };
-    acc[key].quantity += Number(sale.quantity || 0);
-    acc[key].amount += Number(sale.amount || 0);
+  const monthOrders = (data.orders || []).filter((order) => monthKey(order.date) === month);
+  const serviceTotal = monthOrders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+  const collectedTotal = monthOrders.reduce((sum, order) => sum + getPaidAmount(order), 0);
+  const pendingTotal = monthOrders.reduce((sum, order) => sum + getPendingAmount(order), 0);
+  const expensesByCategory = Object.values(monthExpenses.reduce((acc, expense) => {
+    const key = expense.category || "Sin categoria";
+    acc[key] = acc[key] || { name: key, amount: 0 };
+    acc[key].amount += Number(expense.amount || 0);
     return acc;
-  }, {})).sort((a, b) => b.amount - a.amount).slice(0, 6);
+  }, {})).sort((a, b) => b.amount - a.amount);
 
   return (
     <div className="space-y-6">
-      <PageHeader label="Reportes" title="Lectura del negocio" text="Una vista compacta de ventas, servicios, gastos, margen operativo y alertas." />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><StatCard label="Ventas productos" value={currency(salesTotal)} meta="Mes actual" icon="VT" /><StatCard label="Servicios" value={currency(serviceTotal)} meta="Ordenes del mes" icon="OP" /><StatCard label="Gastos" value={currency(expensesTotal)} meta="Egresos del mes" icon="GS" /><StatCard label="Resultado bruto" value={currency(salesTotal + serviceTotal - expensesTotal)} meta="Ingresos menos gastos" icon="$" /></div>
+      <PageHeader label="Reportes" title="Lectura del negocio" text="Una vista compacta de trabajos, cobros, gastos y resultado operativo." />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><StatCard label="Servicios" value={currency(serviceTotal)} meta="Ordenes del mes" icon="OP" /><StatCard label="Cobrado" value={currency(collectedTotal)} meta="Ingresos del mes" icon="OK" /><StatCard label="Gastos" value={currency(expensesTotal)} meta="Egresos del mes" icon="GS" /><StatCard label="Resultado bruto" value={currency(collectedTotal - expensesTotal)} meta="Ingresos menos gastos" icon="$" /></div>
       <div className="grid gap-6 xl:grid-cols-2">
-        <Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Productos mas vendidos</h3></div>{topProducts.length === 0 ? <EmptyState title="Sin ventas" text="Cuando registres ventas, este ranking se calcula automaticamente." /> : <div className="divide-y divide-white/10">{topProducts.map((item) => <div key={item.name} className="flex items-center justify-between gap-4 p-4"><div><p className="font-medium text-white">{item.name}</p><p className="mt-1 text-sm text-zinc-500">{item.quantity} unidades</p></div><p className="font-semibold text-white">{currency(item.amount)}</p></div>)}</div>}</Panel>
-        <Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Alertas de stock</h3></div>{lowStock.length === 0 ? <EmptyState title="Stock en orden" text="No hay productos por debajo del minimo configurado." /> : <div className="divide-y divide-white/10">{lowStock.map((product) => <div key={product.id} className="flex items-center justify-between gap-4 p-4"><div><p className="font-medium text-white">{product.name}</p><p className="mt-1 text-sm text-zinc-500">Minimo {product.minStock}</p></div><Badge tone={stockTone(product)}>{product.stock}</Badge></div>)}</div>}</Panel>
+        <Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Cobros pendientes</h3></div><div className="p-5"><p className="text-3xl font-semibold text-white">{currency(pendingTotal)}</p><p className="mt-2 text-sm text-zinc-500">Clientes con saldo abierto</p></div></Panel>
+        <Panel className="overflow-hidden"><div className="border-b border-white/10 p-5"><h3 className="text-xl font-semibold text-white">Gastos por categoria</h3></div>{expensesByCategory.length === 0 ? <EmptyState title="Sin gastos registrados" text="Cuando registres gastos, vas a ver el total por categoría." /> : <div className="divide-y divide-white/10">{expensesByCategory.map((item) => <div key={item.name} className="flex items-center justify-between gap-4 p-4"><p className="font-medium text-white">{item.name}</p><p className="font-semibold text-white">{currency(item.amount)}</p></div>)}</div>}</Panel>
       </div>
     </div>
   );
@@ -3333,7 +3435,7 @@ function buildMonthSummary(orders) {
 
 function History({ data, search }) {
   const [filter, setFilter] = useState("Todo");
-  const filters = ["Todo", "Sistema", "Cliente", "Presupuesto", "Orden"];
+  const filters = ["Todo", "Sistema", "Cliente", "Presupuesto", "Orden", "Gasto", "Proveedor", "Caja"];
   const items = data.history.filter((h) => (filter === "Todo" || h.type === filter) && [h.type, h.title, h.description].join(" ").toLowerCase().includes(search.toLowerCase()));
   return <div className="space-y-6"><PageHeader label="Historial general" title="Actividad del sistema" text="Registro filtrable de acciones importantes." /><Panel className="overflow-hidden"><div className="flex flex-wrap gap-2 border-b border-white/10 p-5">{filters.map((f) => <button key={f} onClick={() => setFilter(f)} className={`rounded-full border px-3 py-1.5 text-xs ${filter === f ? "border-white/20 bg-white/[0.1] text-white" : "border-white/10 bg-white/[0.035] text-zinc-500"}`}>{f}</button>)}</div>{items.length === 0 ? <EmptyState title="Sin actividad" text="Las acciones aparecerán acá." /> : <div className="divide-y divide-white/10">{items.map((item) => <div key={item.id} className="flex flex-col gap-3 p-5 hover:bg-white/[0.035] md:flex-row md:items-center md:justify-between"><div><div className="flex items-center gap-3"><Badge>{item.type}</Badge><h3 className="font-medium text-white">{item.title}</h3></div><p className="mt-2 text-sm text-zinc-500">{item.description}</p></div><p className="text-sm text-zinc-600">{dateTimeLabel(item.date)}</p></div>)}</div>}</Panel></div>;
 }
@@ -3343,8 +3445,6 @@ function GlobalSearchResults({ data, search, filter, setActive, clearSearch }) {
   const clients = data.clients.filter((client) => [client.name, client.phone, client.email, client.notes].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const budgets = data.budgets.filter((budget) => [budget.id, budget.client, budget.service, budget.status, budget.observations].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const orders = data.orders.filter((order) => [order.id, order.client, order.service, order.status, order.payment, order.observations].join(" ").toLowerCase().includes(query)).slice(0, 8);
-  const products = (data.products || []).filter((product) => [product.name, product.category, product.id].join(" ").toLowerCase().includes(query)).slice(0, 8);
-  const sales = (data.sales || []).filter((sale) => [sale.id, sale.productName, sale.client, sale.paymentMethod, sale.notes].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const expenses = (data.expenses || []).filter((expense) => [expense.description, expense.category, expense.supplier, expense.paymentMethod].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const suppliers = (data.suppliers || []).filter((supplier) => [supplier.name, supplier.phone, supplier.email, supplier.category, supplier.notes].join(" ").toLowerCase().includes(query)).slice(0, 8);
   const history = data.history.filter((item) => [item.type, item.title, item.description].join(" ").toLowerCase().includes(query)).slice(0, 8);
@@ -3352,8 +3452,6 @@ function GlobalSearchResults({ data, search, filter, setActive, clearSearch }) {
     { key: "clients", title: "Clientes", section: "clients", items: clients },
     { key: "budgets", title: "Presupuestos", section: "budgets", items: budgets },
     { key: "orders", title: "Órdenes", section: "orders", items: orders },
-    { key: "products", title: "Productos", section: "products", items: products },
-    { key: "sales", title: "Ventas", section: "sales", items: sales },
     { key: "expenses", title: "Gastos", section: "expenses", items: expenses },
     { key: "suppliers", title: "Proveedores", section: "suppliers", items: suppliers },
     { key: "history", title: "Historial", section: "history", items: history },
@@ -3386,8 +3484,6 @@ function GlobalSearchResults({ data, search, filter, setActive, clearSearch }) {
             {group.key === "clients" && group.items.map((client) => <button key={client.id} onClick={() => openSection("clients")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{client.name}</p><p className="mt-1 text-sm text-zinc-500">{[client.phone, client.email].filter(Boolean).join(" · ") || client.id}</p></button>)}
             {group.key === "budgets" && group.items.map((budget) => <button key={budget.id} onClick={() => openSection("budgets")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-mono text-sm text-zinc-300">{budget.id}</p><p className="mt-1 font-medium text-white">{budget.client}</p><p className="mt-1 text-sm text-zinc-500">{budget.service} · {currency(budget.amount)}</p></button>)}
             {group.key === "orders" && group.items.map((order) => <button key={order.id} onClick={() => openSection("orders")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-mono text-sm text-zinc-300">{order.id}</p><p className="mt-1 font-medium text-white">{order.client}</p><p className="mt-1 text-sm text-zinc-500">{order.service} · {currency(order.total)}</p></button>)}
-            {group.key === "products" && group.items.map((product) => <button key={product.id} onClick={() => openSection("products")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{product.name}</p><p className="mt-1 text-sm text-zinc-500">{product.category || product.id} - {currency(product.price || 0)}</p></button>)}
-            {group.key === "sales" && group.items.map((sale) => <button key={sale.id} onClick={() => openSection("sales")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{sale.productName}</p><p className="mt-1 text-sm text-zinc-500">{sale.paymentMethod} - {currency(sale.amount || 0)}</p></button>)}
             {group.key === "expenses" && group.items.map((expense) => <button key={expense.id} onClick={() => openSection("expenses")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{expense.description}</p><p className="mt-1 text-sm text-zinc-500">{expense.category || "Sin categoria"} - {currency(expense.amount || 0)}</p></button>)}
             {group.key === "suppliers" && group.items.map((supplier) => <button key={supplier.id} onClick={() => openSection("suppliers")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><p className="font-medium text-white">{supplier.name}</p><p className="mt-1 text-sm text-zinc-500">{[supplier.phone, supplier.email].filter(Boolean).join(" - ") || supplier.id}</p></button>)}
             {group.key === "history" && group.items.map((item) => <button key={item.id} onClick={() => openSection("history")} className="block w-full p-4 text-left hover:bg-white/[0.035]"><div className="flex items-center gap-3"><Badge>{item.type}</Badge><p className="font-medium text-white">{item.title}</p></div><p className="mt-2 text-sm text-zinc-500">{item.description}</p></button>)}
@@ -3827,8 +3923,6 @@ function AppShell({ account, initialData, onLogout }) {
     if (visibleActive === "clients") return <Clients data={data} setData={setData} search={search} />;
     if (visibleActive === "budgets") return <Budgets data={data} setData={setData} search={search} />;
     if (visibleActive === "orders") return <Orders data={data} setData={setData} search={search} />;
-    if (visibleActive === "products") return <Products data={data} setData={setData} search={search} />;
-    if (visibleActive === "sales") return <Sales data={data} setData={setData} search={search} />;
     if (visibleActive === "expenses") return <Expenses data={data} setData={setData} search={search} />;
     if (visibleActive === "suppliers") return <Suppliers data={data} setData={setData} search={search} />;
     if (visibleActive === "cash") return <Cash data={data} setData={setData} />;
