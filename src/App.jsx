@@ -88,6 +88,7 @@ const EN_TRANSLATIONS = {
   "¿Olvidaste tu contraseña?": "Forgot your password?",
   "Enviar email de recuperación": "Send recovery email",
   "Volver": "Back",
+  "← Volver": "← Back",
   "Volver al inicio de sesión": "Back to sign in",
   "Continuar con Google": "Continue with Google",
   "Entrar como anónimo": "Enter as guest",
