@@ -1385,11 +1385,15 @@ function AuthScreen({ onLogin }) {
       }
 
       try {
-        const [{ auth }, { createUserWithEmailAndPassword }] = await Promise.all([
+        const [{ auth }, { createUserWithEmailAndPassword, sendEmailVerification }] = await Promise.all([
           import("./firebase"),
           import("firebase/auth"),
         ]);
-        await createUserWithEmailAndPassword(auth, email, password);
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        await sendEmailVerification(result.user, {
+          url: window.location.origin,
+          handleCodeInApp: false,
+        });
       } catch (error) {
         setError(error.code || error.message || "No se pudo crear la cuenta.");
         return;
@@ -1402,6 +1406,7 @@ function AuthScreen({ onLogin }) {
         phone: onlyDigits(form.phone),
         email,
         password,
+        emailVerified: false,
         createdAt: new Date().toISOString(),
       };
       const data = createEmptyData({
@@ -1430,21 +1435,36 @@ function AuthScreen({ onLogin }) {
       writeJSON(ACCOUNTS_KEY, [account, ...accounts]);
       writeJSON(dataKey(email), data);
       await saveCloudWorkspace(email, account, data);
-      writeJSON(SESSION_KEY, { email });
-      notify("Cuenta creada correctamente.");
-      onLogin(account, data);
+      try {
+        const [{ auth }, { signOut }] = await Promise.all([
+          import("./firebase"),
+          import("firebase/auth"),
+        ]);
+        await signOut(auth);
+      } catch {
+        // The app session is still kept closed locally until the email is verified.
+      }
+      setMessage("Cuenta creada. Te enviamos un link de verificaciÃ³n al email. Confirmalo y despuÃ©s iniciÃ¡ sesiÃ³n.");
+      notify("Email de verificaciÃ³n enviado.");
+      setMode("login");
       return;
     }
 
     let account = accounts.find((item) => item.email === email && item.password === password);
     let cloudWorkspace = null;
     try {
-      const [{ auth }, { signInWithEmailAndPassword }] = await Promise.all([
+      const [{ auth }, { signInWithEmailAndPassword, signOut }] = await Promise.all([
         import("./firebase"),
         import("firebase/auth"),
       ]);
       const result = await signInWithEmailAndPassword(auth, email, password);
       const user = result.user;
+      await user.reload();
+      if (!user.emailVerified) {
+        await signOut(auth);
+        setError("TenÃ©s que verificar tu email antes de iniciar sesiÃ³n. RevisÃ¡ tu bandeja de entrada y spam.");
+        return;
+      }
       cloudWorkspace = await loadCloudWorkspace(email);
       account =
         account ||
@@ -1456,19 +1476,32 @@ function AuthScreen({ onLogin }) {
           email,
           password,
           provider: "password",
+          emailVerified: true,
           createdAt: new Date().toISOString(),
         };
+      account = { ...account, emailVerified: true };
       if (!accounts.some((item) => item.email === email)) {
         accounts = [account, ...accounts];
+        writeJSON(ACCOUNTS_KEY, accounts);
+      } else {
+        accounts = accounts.map((item) => item.email === email ? account : item);
         writeJSON(ACCOUNTS_KEY, accounts);
       }
     } catch {
       // Fallback for workspaces created before Firebase email/password auth was enabled.
     }
+    if (account?.emailVerified === false) {
+      setError("TenÃ©s que verificar tu email antes de iniciar sesiÃ³n. RevisÃ¡ tu bandeja de entrada y spam.");
+      return;
+    }
     if (!account) {
       cloudWorkspace = await loadCloudWorkspace(email);
       if (cloudWorkspace?.account?.password === password) {
         account = cloudWorkspace.account;
+        if (account.emailVerified === false) {
+          setError("TenÃ©s que verificar tu email antes de iniciar sesiÃ³n. RevisÃ¡ tu bandeja de entrada y spam.");
+          return;
+        }
         accounts = [account, ...accounts.filter((item) => item.email !== email)];
         writeJSON(ACCOUNTS_KEY, accounts);
       }
@@ -1481,7 +1514,7 @@ function AuthScreen({ onLogin }) {
     const localData = normalizeStoredData(readJSON(dataKey(email), createEmptyData()), account);
     const data = normalizeStoredData(cloudWorkspace?.data || localData, account);
     writeJSON(dataKey(email), data);
-    if (!cloudWorkspace?.data) await saveCloudWorkspace(email, account, data);
+    if (!cloudWorkspace?.data || cloudWorkspace?.account?.emailVerified === false) await saveCloudWorkspace(email, account, data);
     writeJSON(SESSION_KEY, { email });
     notify("Sesión iniciada correctamente.");
     onLogin(account, data);
