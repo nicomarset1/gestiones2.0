@@ -5,7 +5,7 @@ const ACCOUNTS_KEY = `${APP_KEY}:accounts`;
 const SESSION_KEY = `${APP_KEY}:session`;
 const THEME_KEY = `${APP_KEY}:theme`;
 const LANGUAGE_KEY = `${APP_KEY}:language`;
-const FEEDBACK_EMAIL = "nicolasmarsetg@gmail.com";
+const FEEDBACK_EMAIL = "nexomanagementt@gmail.com";
 
 const emptyData = {
   profile: {
