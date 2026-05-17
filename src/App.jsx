@@ -1265,6 +1265,7 @@ function AuthScreen({ onLogin }) {
   const [mode, setMode] = useState("login");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [language, setLanguage] = useState(() => localStorage.getItem(LANGUAGE_KEY) === "en" ? "en" : "es");
   const [form, setForm] = useState({
     name: "",
     surname: "",
@@ -1274,6 +1275,21 @@ function AuthScreen({ onLogin }) {
     password: "",
     business: "",
   });
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+    localStorage.setItem(LANGUAGE_KEY, language);
+  }, [language]);
+
+  useEffect(() => {
+    const root = document.getElementById("root");
+    applyLanguage(root, language);
+    const observer = new MutationObserver(() => applyLanguage(root, language));
+    if (root) observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [language]);
+
+  const toggleLanguage = () => setLanguage((value) => value === "es" ? "en" : "es");
 
   async function submit(e) {
     e.preventDefault();
@@ -1586,10 +1602,24 @@ function AuthScreen({ onLogin }) {
         </div>
 
         <Panel className="p-4 sm:p-6">
-          <p className="text-xs uppercase tracking-[0.35em] text-zinc-600">{mode === "login" ? "Iniciar sesión" : mode === "register" ? "Crear cuenta" : "Recuperar acceso"}</p>
-          <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">{mode === "login" ? "Entrá a tu espacio" : mode === "register" ? "Creá tu espacio de trabajo" : "Recuperá tu contraseña"}</h2>
+          <div className="mb-6 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.35em] text-zinc-600">{mode === "login" ? "Iniciar sesión" : mode === "register" ? "Crear cuenta" : "Recuperar acceso"}</p>
+              <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl">{mode === "login" ? "Entrá a tu espacio" : mode === "register" ? "Creá tu espacio de trabajo" : "Recuperá tu contraseña"}</h2>
+            </div>
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              data-nm-no-translate
+              className="flex h-10 min-w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] px-3 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:border-white/20 hover:bg-white/[0.09]"
+              aria-label={language === "es" ? "Cambiar a inglés" : "Switch to Spanish"}
+              title={language === "es" ? "English" : "Español"}
+            >
+              {language === "es" ? "ES" : "EN"}
+            </button>
+          </div>
           {mode === "reset" && <p className="mt-3 text-sm leading-6 text-zinc-500">Te enviamos un enlace oficial de Firebase para crear una nueva contraseña.</p>}
-          <form onSubmit={submit} className="mt-6 space-y-4">
+          <form onSubmit={submit} className={`${mode === "reset" ? "mt-6" : ""} space-y-4`}>
             {mode === "register" && (
               <>
                 <Input label="Nombre" value={form.name} onChange={(v) => setForm({ ...form, name: toTitleCase(v) })} />
