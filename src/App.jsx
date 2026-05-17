@@ -969,6 +969,20 @@ function feedbackHref(account, data) {
   return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(FEEDBACK_EMAIL)}&su=${subject}&body=${body}`;
 }
 
+function authErrorMessage(error) {
+  const code = error?.code || "";
+  const messages = {
+    "auth/unauthorized-domain": "Este dominio no está autorizado en Firebase Auth. Agregá el dominio actual en Firebase Console > Authentication > Settings > Authorized domains.",
+    "auth/operation-not-allowed": "El inicio con Google no está habilitado en Firebase. Activá Google en Authentication > Sign-in method.",
+    "auth/popup-blocked": "El navegador bloqueó la ventana de Google. Voy a intentar con redirección.",
+    "auth/popup-closed-by-user": "Se cerró la ventana de Google antes de completar el inicio.",
+    "auth/cancelled-popup-request": "Se canceló una ventana de Google anterior. Volvé a intentar.",
+    "auth/account-exists-with-different-credential": "Ya existe una cuenta con este email usando otro método de ingreso.",
+    "auth/network-request-failed": "No se pudo conectar con Firebase. Revisá la conexión e intentá de nuevo.",
+  };
+  return messages[code] || error?.message || "No se pudo iniciar sesión con Google.";
+}
+
 function isValidPhone(phone) {
   const digits = onlyDigits(phone);
   return digits.length >= 8 && digits.length <= 15;
@@ -1842,19 +1856,17 @@ function AuthScreen({ onLogin }) {
     let cancelled = false;
     async function completeRedirectLogin() {
       try {
-        const [{ auth }, { getRedirectResult, GoogleAuthProvider }] = await Promise.all([
+        const [{ auth }, { getRedirectResult }] = await Promise.all([
           import("./firebase"),
           import("firebase/auth"),
         ]);
         const result = await getRedirectResult(auth);
         if (!result || cancelled) return;
-        const providerId = GoogleAuthProvider.credentialFromResult(result)?.providerId || result.providerId;
-        if (providerId && providerId !== "google.com") return;
         await finishProviderLogin(result);
       } catch (error) {
         if (!cancelled) {
           console.error("Error OAuth redirect:", error);
-          notify(error.code || error.message || "No se pudo completar el inicio de sesión.");
+          notify(authErrorMessage(error));
         }
       }
     }
@@ -1865,33 +1877,46 @@ function AuthScreen({ onLogin }) {
   }, [finishProviderLogin]);
 
   async function loginWithGoogle() {
+    async function startRedirect() {
+      const [{ auth, googleProvider }, { browserLocalPersistence, setPersistence, signInWithRedirect }] = await Promise.all([
+        import("./firebase"),
+        import("firebase/auth"),
+      ]);
+      await setPersistence(auth, browserLocalPersistence);
+      await signInWithRedirect(auth, googleProvider);
+    }
+
     try {
-      const [{ auth, googleProvider }, { signInWithPopup }] = await Promise.all([
+      const [{ auth, googleProvider }, { browserLocalPersistence, setPersistence, signInWithPopup }] = await Promise.all([
         import("./firebase"),
         import("firebase/auth"),
       ]);
 
+      await setPersistence(auth, browserLocalPersistence);
       const result = await signInWithPopup(auth, googleProvider);
       await finishProviderLogin(result);
     } catch (error) {
-      const shouldRedirect = ["auth/popup-blocked", "auth/popup-closed-by-user", "auth/cancelled-popup-request"].includes(error.code);
+      const shouldRedirect = [
+        "auth/popup-blocked",
+        "auth/cancelled-popup-request",
+        "auth/internal-error",
+        "auth/web-storage-unsupported",
+        "auth/network-request-failed",
+      ].includes(error.code);
       if (shouldRedirect) {
         try {
-          const [{ auth, googleProvider }, { signInWithRedirect }] = await Promise.all([
-            import("./firebase"),
-            import("firebase/auth"),
-          ]);
-          await signInWithRedirect(auth, googleProvider);
+          notify(authErrorMessage(error));
+          await startRedirect();
           return;
         } catch (redirectError) {
           console.error("Error Google redirect:", redirectError);
-          notify(redirectError.code || redirectError.message || "Error al iniciar sesión con Google.");
+          notify(authErrorMessage(redirectError));
           return;
         }
       }
 
       console.error("Error Google Auth:", error);
-      notify(error.code || error.message || "Error al iniciar sesión con Google.");
+      notify(authErrorMessage(error));
     }
   }
 
