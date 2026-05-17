@@ -755,7 +755,7 @@ function feedbackHref(account, data) {
       "Comentario:",
     ].join("\n")
   );
-  return `mailto:${FEEDBACK_EMAIL}?subject=${subject}&body=${body}`;
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(FEEDBACK_EMAIL)}&su=${subject}&body=${body}`;
 }
 
 function isValidPhone(phone) {
@@ -1838,7 +1838,7 @@ function Topbar({
               <div className="absolute right-0 top-14 w-[min(18rem,calc(100vw-2rem))] rounded-3xl border border-white/10 bg-zinc-950 p-3 shadow-2xl shadow-black/60">
                 <div className="border-b border-white/10 p-3"><p className="font-medium text-white">{fullName}</p><p className="mt-1 text-sm text-zinc-500">{data.profile.email || account.email}</p></div>
                 <button onClick={() => { setActive("settings"); setOpen(false); }} className="mt-3 w-full rounded-2xl px-3 py-2 text-left text-sm text-zinc-400 hover:bg-white/[0.06] hover:text-white">Configuración</button>
-                <a href={feedbackHref(account, data)} className="block w-full rounded-2xl px-3 py-2 text-left text-sm text-zinc-400 hover:bg-white/[0.06] hover:text-white">Enviar feedback</a>
+                <a href={feedbackHref(account, data)} target="_blank" rel="noopener noreferrer" className="block w-full rounded-2xl px-3 py-2 text-left text-sm text-zinc-400 hover:bg-white/[0.06] hover:text-white">Enviar feedback</a>
                 <button onClick={onLogout} className="w-full rounded-2xl px-3 py-2 text-left text-sm text-red-300 hover:bg-red-400/10">Cerrar sesión</button>
               </div>
             )}
