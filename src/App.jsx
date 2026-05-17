@@ -87,6 +87,7 @@ const EN_TRANSLATIONS = {
   "Contraseña": "Password",
   "¿Olvidaste tu contraseña?": "Forgot your password?",
   "Enviar email de recuperación": "Send recovery email",
+  "Volver": "Back",
   "Volver al inicio de sesión": "Back to sign in",
   "Continuar con Google": "Continue with Google",
   "Entrar como anónimo": "Enter as guest",
@@ -1627,6 +1628,15 @@ function AuthScreen({ onLogin }) {
           </div>
           {mode === "reset" && <p className="mt-3 text-sm leading-6 text-zinc-500">Te enviamos un enlace oficial de Firebase para crear una nueva contraseña.</p>}
           <form onSubmit={submit} className={`${mode === "reset" ? "mt-6" : ""} space-y-4`}>
+            {mode === "reset" && (
+              <button
+                type="button"
+                onClick={() => switchMode("login")}
+                className="inline-flex items-center rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-zinc-400 transition hover:border-white/25 hover:text-white"
+              >
+                ← Volver
+              </button>
+            )}
             {mode === "register" && (
               <>
                 <Input label="Nombre" value={form.name} onChange={(v) => setForm({ ...form, name: toTitleCase(v) })} />
