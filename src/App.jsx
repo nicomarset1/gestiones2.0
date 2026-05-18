@@ -69,7 +69,7 @@ const BUSINESS_PRESETS = {
   },
   servicesPlus: {
     label: "Servicios completo",
-    description: "Suma gastos, caja simple y reportes sin meterse en ventas masivas ni stock.",
+    description: "Mantiene el flujo principal simple. Las herramientas extra se activan manualmente si hacen falta.",
     modules: {
       clients: true,
       budgets: true,
@@ -78,15 +78,15 @@ const BUSINESS_PRESETS = {
       products: false,
       sales: false,
       inventory: false,
-      expenses: true,
+      expenses: false,
       suppliers: false,
-      cash: true,
-      reports: true,
+      cash: false,
+      reports: false,
     },
   },
   workshop: {
     label: "Taller / service",
-    description: "Para trabajos con insumos, proveedores, gastos, caja y seguimiento de cobros.",
+    description: "Para trabajos por cliente, presupuestos, órdenes y cobros. Los extras se activan aparte.",
     modules: {
       clients: true,
       budgets: true,
@@ -95,10 +95,10 @@ const BUSINESS_PRESETS = {
       products: false,
       sales: false,
       inventory: false,
-      expenses: true,
-      suppliers: true,
-      cash: true,
-      reports: true,
+      expenses: false,
+      suppliers: false,
+      cash: false,
+      reports: false,
     },
   },
   custom: {
@@ -121,6 +121,7 @@ const BUSINESS_PRESETS = {
 };
 
 const DEFAULT_MODULES = BUSINESS_PRESETS.services.modules;
+const OPTIONAL_MODULES = ["expenses", "cash", "suppliers", "reports"];
 
 function createEmptyData(overrides = {}) {
   const business = {
@@ -187,8 +188,10 @@ const EN_TRANSLATIONS = {
   "Clientes, presupuestos, trabajos, pagos y resumen mensual. La experiencia más simple.": "Clients, estimates, jobs, payments, and monthly summary. The simplest experience.",
   "Servicios completo": "Complete services",
   "Suma gastos, caja simple y reportes sin meterse en ventas masivas ni stock.": "Adds expenses, simple cash control, and reports without mass sales or stock.",
+  "Mantiene el flujo principal simple. Las herramientas extra se activan manualmente si hacen falta.": "Keeps the main workflow simple. Extra tools are enabled manually if needed.",
   "Taller / service": "Workshop / service",
   "Para trabajos con insumos, proveedores, gastos, caja y seguimiento de cobros.": "For jobs with supplies, vendors, expenses, cash control, and payment tracking.",
+  "Para trabajos por cliente, presupuestos, órdenes y cobros. Los extras se activan aparte.": "For client jobs, estimates, orders, and collections. Extra tools are enabled separately.",
   "Personalizado": "Custom",
   "Activa solo los apartados que realmente usás en tu negocio.": "Enable only the sections you actually use in your business.",
   "Ordenes y Pagos": "Orders and Payments",
@@ -267,6 +270,12 @@ const EN_TRANSLATIONS = {
   "Ya hay una caja abierta.": "There is already an open cash session.",
   "Tipo de negocio y modulos": "Business type and modules",
   "Elegí un perfil para que la app muestre solo lo necesario. Después podés ajustar cada módulo manualmente.": "Choose a profile so the app only shows what is needed. You can adjust each module manually later.",
+  "Herramientas opcionales": "Optional tools",
+  "Nexo arranca simple. Si tu negocio necesita más control, podés activar Gastos, Caja diaria, Proveedores o Reportes desde Configuración.": "Nexo starts simple. If your business needs more control, you can enable Expenses, Daily Cash, Vendors, or Reports from Settings.",
+  "Ver opciones": "View options",
+  "Módulos principales": "Main modules",
+  "Activados para mantener el flujo básico de clientes, presupuestos, trabajos y cobros.": "Enabled to keep the basic flow of clients, estimates, jobs, and payments.",
+  "Activá solo lo que realmente uses. Si no lo activás, no aparece en el menú.": "Enable only what you actually use. If you do not enable it, it does not appear in the menu.",
   "Sistema web de gestión operativa": "Operations management web system",
   "Centralizá clientes, presupuestos, órdenes, pagos, historial y resumen mensual desde una interfaz profesional, clara y funcional.": "Centralize clients, estimates, orders, payments, history, and monthly summaries from a professional, clear, functional interface.",
   "Primeros pasos": "First steps",
@@ -2433,6 +2442,7 @@ function Dashboard({ data, setData, setActive }) {
     <div className="space-y-6">
       <DashboardDetailModal type={detail} data={data} orders={data.orders} onClose={() => setDetail(null)} />
       <PageHeader label="Dashboard" title="Resumen general" text={`Vista mensual del estado operativo, financiero y comercial de ${monthLabel}.`} />
+      <OptionalToolsNotice data={data} setActive={setActive} />
       <OnboardingChecklist data={data} setActive={setActive} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <button onClick={() => setDetail("clients")} className="h-full w-full text-left"><StatCard label="Clientes" value={data.clients.length} meta="Base comercial" icon="CL" /></button>
@@ -2474,6 +2484,26 @@ function Dashboard({ data, setData, setActive }) {
       </Panel>
       <OrdersTable orders={monthOrders.slice(0, 5)} compact data={data} onFinish={(id) => finishOrder(data, setData, id)} onPay={(id) => markPaid(data, setData, id)} />
     </div>
+  );
+}
+
+function OptionalToolsNotice({ data, setActive }) {
+  const enabled = getEnabledModules(data);
+  const hasHiddenOptionalTools = OPTIONAL_MODULES.some((module) => !enabled[module]);
+  if (!hasHiddenOptionalTools) return null;
+
+  return (
+    <Panel className="border-white/10 bg-white/[0.03] p-5">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Herramientas opcionales</h3>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-zinc-500">
+            Nexo arranca simple. Si tu negocio necesita más control, podés activar Gastos, Caja diaria, Proveedores o Reportes desde Configuración.
+          </p>
+        </div>
+        <SecondaryButton onClick={() => setActive("settings")} className="px-4 py-2.5 text-sm">Ver opciones</SecondaryButton>
+      </div>
+    </Panel>
   );
 }
 
@@ -3679,16 +3709,38 @@ function Settings({ data, setData, account, exportData, resetData }) {
             ))}
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {navItems.filter((item) => item.module).map((item) => {
-              const enabled = getEnabledModules({ business })[item.module];
-              return (
-                <label key={item.id} className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm transition ${enabled ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200" : "border-white/10 bg-white/[0.035] text-zinc-400"}`}>
-                  <span>{item.label}</span>
-                  <input type="checkbox" checked={enabled} onChange={() => toggleModule(item.module)} />
-                </label>
-              );
-            })}
+          <div className="mt-6 grid gap-6 xl:grid-cols-2">
+            <div>
+              <h4 className="font-medium text-white">Módulos principales</h4>
+              <p className="mt-1 text-sm leading-6 text-zinc-500">Activados para mantener el flujo básico de clientes, presupuestos, trabajos y cobros.</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {navItems.filter((item) => item.module && !OPTIONAL_MODULES.includes(item.module)).map((item) => {
+                  const enabled = getEnabledModules({ business })[item.module];
+                  return (
+                    <label key={item.id} className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm transition ${enabled ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200" : "border-white/10 bg-white/[0.035] text-zinc-400"}`}>
+                      <span>{item.label}</span>
+                      <input type="checkbox" checked={enabled} onChange={() => toggleModule(item.module)} />
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-medium text-white">Herramientas opcionales</h4>
+              <p className="mt-1 text-sm leading-6 text-zinc-500">Activá solo lo que realmente uses. Si no lo activás, no aparece en el menú.</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {navItems.filter((item) => item.module && OPTIONAL_MODULES.includes(item.module)).map((item) => {
+                  const enabled = getEnabledModules({ business })[item.module];
+                  return (
+                    <label key={item.id} className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm transition ${enabled ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200" : "border-white/10 bg-white/[0.035] text-zinc-400"}`}>
+                      <span>{item.label}</span>
+                      <input type="checkbox" checked={enabled} onChange={() => toggleModule(item.module)} />
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </Panel>
 
