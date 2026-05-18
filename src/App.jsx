@@ -1048,6 +1048,16 @@ function monthKey(value) {
   return value ? value.slice(0, 7) : "";
 }
 
+function compareByDate(a, b, direction = "desc") {
+  const dateA = new Date(`${a?.date || "1970-01-01"}T12:00:00`).getTime();
+  const dateB = new Date(`${b?.date || "1970-01-01"}T12:00:00`).getTime();
+  const diff = dateA - dateB;
+  if (diff !== 0) return direction === "asc" ? diff : -diff;
+  return direction === "asc"
+    ? String(a?.id || "").localeCompare(String(b?.id || ""))
+    : String(b?.id || "").localeCompare(String(a?.id || ""));
+}
+
 function startOfWeek(date = new Date()) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -3227,8 +3237,8 @@ function OrdersTable({ orders, compact = false, data, onEdit, onDelete, onFinish
             .includes(internalSearch.toLowerCase())
         )
         .sort((a, b) => {
-          if (sort === "recent") return String(b.id).localeCompare(String(a.id));
-          if (sort === "oldest") return String(a.id).localeCompare(String(b.id));
+          if (sort === "recent") return compareByDate(a, b, "desc");
+          if (sort === "oldest") return compareByDate(a, b, "asc");
           if (sort === "az") return String(a.client || "").localeCompare(String(b.client || ""));
           return 0;
         });
