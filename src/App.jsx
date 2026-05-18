@@ -455,6 +455,11 @@ const EN_TRANSLATIONS = {
   "Resumen general": "General summary",
   "Base comercial": "Client base",
   "Órdenes pendientes": "Pending orders",
+  "Ingresos semanales": "Weekly income",
+  "Cobrado esta semana": "Collected this week",
+  "Sin semana anterior": "No previous week",
+  "vs semana anterior": "vs previous week",
+  "igual que semana anterior": "same as previous week",
   "Trabajos pendientes del mes": "Pending jobs this month",
   "Atrasadas": "Overdue",
   "Por cobrar": "Receivables",
@@ -1041,6 +1046,44 @@ function dateTimeLabel(value) {
 
 function monthKey(value) {
   return value ? value.slice(0, 7) : "";
+}
+
+function startOfWeek(date = new Date()) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  return d;
+}
+
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function isDateInRange(value, start, end) {
+  if (!value) return false;
+  const d = new Date(`${value}T12:00:00`);
+  return d >= start && d < end;
+}
+
+function getWeeklyIncomeStats(orders) {
+  const currentStart = startOfWeek();
+  const currentEnd = addDays(currentStart, 7);
+  const previousStart = addDays(currentStart, -7);
+  const previousEnd = currentStart;
+  const current = orders.filter((order) => isDateInRange(order.date, currentStart, currentEnd)).reduce((sum, order) => sum + getPaidAmount(order), 0);
+  const previous = orders.filter((order) => isDateInRange(order.date, previousStart, previousEnd)).reduce((sum, order) => sum + getPaidAmount(order), 0);
+  const diff = current - previous;
+  const percent = previous > 0 ? Math.round((diff / previous) * 100) : current > 0 ? 100 : 0;
+  return {
+    current,
+    previous,
+    diff,
+    percent,
+    trend: diff > 0 ? "up" : diff < 0 ? "down" : "flat",
+  };
 }
 
 function currentMonthLabel() {
@@ -2244,6 +2287,35 @@ function StatCard({ label, value, meta, icon }) {
   );
 }
 
+function WeeklyIncomeCard({ stats }) {
+  const trendClass = stats.trend === "up"
+    ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+    : stats.trend === "down"
+      ? "border-red-400/25 bg-red-400/10 text-red-300"
+      : "border-white/10 bg-white/[0.06] text-zinc-300";
+  const arrow = stats.trend === "up" ? "↗" : stats.trend === "down" ? "↘" : "→";
+  const meta = stats.previous > 0
+    ? `${stats.percent > 0 ? "+" : ""}${stats.percent}% vs semana anterior`
+    : "Sin semana anterior";
+
+  return (
+    <Panel className="h-full p-5 transition hover:-translate-y-1 hover:bg-zinc-900/80">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm text-zinc-500">Ingresos semanales</p>
+          <p className="mt-3 text-2xl font-semibold tracking-tight text-white">{currency(stats.current)}</p>
+          <p className="mt-2 text-xs text-zinc-500">Cobrado esta semana</p>
+          <div className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${trendClass}`}>
+            <span>{arrow}</span>
+            <span>{stats.trend === "flat" && stats.previous > 0 ? "0% igual que semana anterior" : meta}</span>
+          </div>
+        </div>
+        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl border font-mono ${trendClass}`}>{arrow}</div>
+      </div>
+    </Panel>
+  );
+}
+
 function DashboardDetailModal({ type, data, orders, onClose }) {
   const [page, setPage] = useState(1);
   const perPage = 8;
@@ -2431,7 +2503,7 @@ function Dashboard({ data, setData, setActive }) {
   const paidRevenue = monthOrders.reduce((sum, order) => sum + getPaidAmount(order), 0);
   const pendingRevenue = monthOrders.reduce((sum, order) => sum + getPendingAmount(order), 0);
   const paidPercent = totalRevenue > 0 ? Math.round((paidRevenue / totalRevenue) * 100) : 0;
-  const pendingOrders = monthOrders.filter((order) => order.status === "Pendiente").length;
+  const weeklyIncome = getWeeklyIncomeStats(data.orders);
   const overdueOrders = data.orders.filter(isOrderOverdue);
   const openBalances = data.orders.filter((order) => getPendingAmount(order) > 0);
   const totalOpenBalance = openBalances.reduce((sum, order) => sum + getPendingAmount(order), 0);
@@ -2446,7 +2518,7 @@ function Dashboard({ data, setData, setActive }) {
       <OnboardingChecklist data={data} setActive={setActive} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <button onClick={() => setDetail("clients")} className="h-full w-full text-left"><StatCard label="Clientes" value={data.clients.length} meta="Base comercial" icon="CL" /></button>
-        <button onClick={() => setDetail("pendingOrders")} className="h-full w-full text-left"><StatCard label="Órdenes pendientes" value={pendingOrders} meta="Trabajos pendientes del mes" icon="OR" /></button>
+        <WeeklyIncomeCard stats={weeklyIncome} />
         <button onClick={() => setDetail("overdueOrders")} className="h-full w-full text-left"><StatCard label="Atrasadas" value={overdueOrders.length} meta={`Pendientes +${ORDER_OVERDUE_DAYS} días`} icon="AT" /></button>
         <button onClick={() => setDetail("openBalances")} className="h-full w-full text-left"><StatCard label="Por cobrar" value={currency(totalOpenBalance)} meta="Saldo pendiente total" icon="PG" /></button>
       </div>
