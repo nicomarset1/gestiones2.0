@@ -2287,16 +2287,36 @@ function StatCard({ label, value, meta, icon }) {
   );
 }
 
+function TrendGlyph({ trend }) {
+  const down = trend === "down";
+  return (
+    <svg
+      viewBox="0 0 28 28"
+      aria-hidden="true"
+      className={`h-5 w-5 ${down ? "rotate-180" : ""}`}
+      fill="none"
+    >
+      <path d="M4 23V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M10 23V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 23V9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M5 12l6-6 5 5 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M18 4h5v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function WeeklyIncomeCard({ stats }) {
   const trendClass = stats.trend === "up"
     ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
     : stats.trend === "down"
       ? "border-red-400/25 bg-red-400/10 text-red-300"
       : "border-white/10 bg-white/[0.06] text-zinc-300";
-  const arrow = stats.trend === "up" ? "↗" : stats.trend === "down" ? "↘" : "→";
-  const meta = stats.previous > 0
-    ? `${stats.percent > 0 ? "+" : ""}${stats.percent}% vs semana anterior`
+  const percentLabel = stats.previous > 0
+    ? `${stats.percent > 0 ? "+" : ""}${stats.percent}%`
     : "Sin semana anterior";
+  const contextLabel = stats.previous > 0
+    ? stats.trend === "flat" ? "igual que semana anterior" : "vs semana anterior"
+    : "vs semana anterior";
 
   return (
     <Panel className="h-full p-5 transition hover:-translate-y-1 hover:bg-zinc-900/80">
@@ -2305,12 +2325,17 @@ function WeeklyIncomeCard({ stats }) {
           <p className="text-sm text-zinc-500">Ingresos semanales</p>
           <p className="mt-3 text-2xl font-semibold tracking-tight text-white">{currency(stats.current)}</p>
           <p className="mt-2 text-xs text-zinc-500">Cobrado esta semana</p>
-          <div className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${trendClass}`}>
-            <span>{arrow}</span>
-            <span>{stats.trend === "flat" && stats.previous > 0 ? "0% igual que semana anterior" : meta}</span>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold ${trendClass}`}>
+              <TrendGlyph trend={stats.trend} />
+              <span>{percentLabel}</span>
+            </div>
+            <span className="text-xs text-zinc-500">{contextLabel}</span>
           </div>
         </div>
-        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl border font-mono ${trendClass}`}>{arrow}</div>
+        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl border ${trendClass}`}>
+          <TrendGlyph trend={stats.trend} />
+        </div>
       </div>
     </Panel>
   );
