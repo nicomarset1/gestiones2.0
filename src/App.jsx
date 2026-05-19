@@ -757,10 +757,15 @@ async function loadCloudWorkspace(email) {
 
 async function saveCloudWorkspace(email, account, data) {
   try {
-    const [{ db }, { doc, serverTimestamp, setDoc }] = await Promise.all([
+    const [{ auth, db }, { doc, serverTimestamp, setDoc }] = await Promise.all([
       import("./firebase"),
       import("firebase/firestore"),
     ]);
+    const currentEmail = normalizeEmail(auth.currentUser?.email || "");
+    const targetEmail = normalizeEmail(email);
+    if (!currentEmail || currentEmail !== targetEmail) {
+      throw new Error("No hay una sesión Firebase activa para guardar este espacio.");
+    }
     await setDoc(
       doc(db, "workspaces", cloudDocId(email)),
       {
@@ -773,7 +778,7 @@ async function saveCloudWorkspace(email, account, data) {
     );
     return true;
   } catch (error) {
-    console.warn("No se pudo guardar en Firestore:", error);
+    console.error("No se pudo guardar en Firestore:", error);
     return false;
   }
 }
@@ -2142,6 +2147,7 @@ function Topbar({
   toggleTheme,
   language,
   toggleLanguage,
+  cloudStatus,
 }) {
   const [open, setOpen] = useState(false);
   const fullName = formatFullName(data.profile) || `${account.name || ""} ${account.surname || ""}`.trim();
@@ -2197,7 +2203,20 @@ function Topbar({
           >
             {language === "es" ? "ES" : "EN"}
           </button>
-          <div className="hidden items-center gap-2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-300 sm:flex"><span className="h-2 w-2 rounded-full bg-emerald-400" />Sistema activo</div>
+          <div className={`hidden items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm sm:flex ${
+            cloudStatus === "saved"
+              ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-300"
+              : cloudStatus === "saving" || cloudStatus === "loading"
+                ? "border-amber-400/20 bg-amber-400/10 text-amber-300"
+                : cloudStatus === "local"
+                  ? "border-white/10 bg-white/[0.06] text-zinc-400"
+                  : "border-red-400/20 bg-red-400/10 text-red-300"
+          }`}>
+            <span className={`h-2 w-2 rounded-full ${
+              cloudStatus === "saved" ? "bg-emerald-400" : cloudStatus === "error" ? "bg-red-400" : cloudStatus === "local" ? "bg-zinc-500" : "bg-amber-400"
+            }`} />
+            {cloudStatus === "saved" ? "Guardado en nube" : cloudStatus === "saving" ? "Guardando..." : cloudStatus === "loading" ? "Sincronizando..." : cloudStatus === "local" ? "Modo local" : "Sin sincronizar"}
+          </div>
           <div className="relative">
             <button onClick={() => { setOpen(!open); if (menuOpen) closeMenu(); }} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] font-mono text-sm text-white">
               {photoURL ? <img src={photoURL} alt={fullName || "Perfil"} className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : initials}
@@ -4031,6 +4050,7 @@ function AppShell({ account, initialData, onLogout }) {
   const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark");
   const [language, setLanguage] = useState(() => localStorage.getItem(LANGUAGE_KEY) === "en" ? "en" : "es");
   const [cloudReady, setCloudReady] = useState(isAnonymousAccount);
+  const [cloudStatus, setCloudStatus] = useState(isAnonymousAccount ? "local" : "loading");
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
   useEffect(() => {
@@ -4059,6 +4079,7 @@ function AppShell({ account, initialData, onLogout }) {
         setData(normalizeStoredData(workspace.data, workspace.account || account));
       }
       setCloudReady(true);
+      setCloudStatus("saved");
     });
     return () => {
       cancelled = true;
@@ -4069,7 +4090,11 @@ function AppShell({ account, initialData, onLogout }) {
     if (isAnonymousAccount) return undefined;
     if (!cloudReady) return undefined;
     const timer = window.setTimeout(() => {
-      saveCloudWorkspace(accountEmail, account, data);
+      setCloudStatus("saving");
+      saveCloudWorkspace(accountEmail, account, data).then((saved) => {
+        setCloudStatus(saved ? "saved" : "error");
+        if (!saved) notify("No se pudo guardar en la nube. Revisá la sesión o la configuración de Firebase.");
+      });
     }, 800);
     return () => window.clearTimeout(timer);
   }, [account, accountEmail, cloudReady, data, isAnonymousAccount]);
@@ -4118,7 +4143,7 @@ function AppShell({ account, initialData, onLogout }) {
   const toggleTheme = () => setTheme((value) => value === "dark" ? "light" : "dark");
   const toggleLanguage = () => setLanguage((value) => value === "es" ? "en" : "es");
   if (needsProfileCompletion) return <CompleteProfile data={data} setData={setData} account={account} onLogout={onLogout} />;
-  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><MobileMenuDrawer open={menuOpen} closing={menuClosing} active={active} setActive={setActive} data={data} closeMenu={closeMenu} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} searchFilter={searchFilter} setSearchFilter={setSearchFilter} menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} account={account} data={data} setActive={setActive} onLogout={onLogout} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
+  return <main className="min-h-screen overflow-x-hidden bg-[#080808] text-zinc-100"><ToastHost /><ConfirmHost /><MobileMenuDrawer open={menuOpen} closing={menuClosing} active={active} setActive={setActive} data={data} closeMenu={closeMenu} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} /><div className="pointer-events-none fixed inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_top,black,transparent_72%)]" /><Sidebar active={active} setActive={setActive} data={data} /><div className="relative z-10 min-w-0 lg:pl-72"><Topbar search={search} setSearch={setSearch} searchFilter={searchFilter} setSearchFilter={setSearchFilter} menuOpen={menuOpen} toggleMenu={toggleMenu} closeMenu={closeMenu} account={account} data={data} setActive={setActive} onLogout={onLogout} theme={theme} toggleTheme={toggleTheme} language={language} toggleLanguage={toggleLanguage} cloudStatus={cloudStatus} /><div className="px-4 py-5 sm:px-5 sm:py-8 lg:px-8">{content}</div></div></main>;
 }
 
 export default function App() {
