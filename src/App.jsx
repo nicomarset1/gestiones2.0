@@ -741,6 +741,19 @@ function writeJSON(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function prepareCloudData(data) {
+  const photoURL = data?.profile?.photoURL || "";
+  const photoTooLarge = photoURL.startsWith("data:") && photoURL.length > 180000;
+  if (!photoTooLarge) return data;
+  return {
+    ...data,
+    profile: {
+      ...data.profile,
+      photoURL: "",
+    },
+  };
+}
+
 async function loadCloudWorkspace(email) {
   try {
     const [{ db }, { doc, getDoc }] = await Promise.all([
@@ -766,11 +779,12 @@ async function saveCloudWorkspace(email, account, data) {
     if (!currentEmail || currentEmail !== targetEmail) {
       throw new Error("No hay una sesión Firebase activa para guardar este espacio.");
     }
+    const cloudData = prepareCloudData(data);
     await setDoc(
       doc(db, "workspaces", cloudDocId(email)),
       {
         account,
-        data,
+        data: cloudData,
         email: normalizeEmail(email),
         updatedAt: serverTimestamp(),
       },
@@ -1342,16 +1356,51 @@ function Input({ label, value, onChange, type = "text", placeholder = "" }) {
   );
 }
 
+function resizeProfilePhoto(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      const maxSize = 320;
+      const scale = Math.min(maxSize / image.width, maxSize / image.height, 1);
+      const width = Math.max(Math.round(image.width * scale), 1);
+      const height = Math.max(Math.round(image.height * scale), 1);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        reject(new Error("No se pudo procesar la imagen."));
+        return;
+      }
+      ctx.drawImage(image, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.78));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("No se pudo leer la imagen."));
+    };
+    image.src = url;
+  });
+}
+
 function ProfilePhotoInput({ photoURL, initials, onChange }) {
-  function handleFile(file) {
+  async function handleFile(file) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       notify("Elegí una imagen válida para la foto de perfil.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => onChange(String(reader.result || ""));
-    reader.readAsDataURL(file);
+    try {
+      const optimizedPhoto = await resizeProfilePhoto(file);
+      onChange(optimizedPhoto);
+      notify("Foto optimizada y lista para guardar.");
+    } catch (error) {
+      console.error("No se pudo procesar la foto:", error);
+      notify("No se pudo procesar la foto. Probá con otra imagen.");
+    }
   }
 
   return (
