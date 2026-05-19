@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const APP_KEY = "nexo-management-v1";
 const ACCOUNTS_KEY = `${APP_KEY}:accounts`;
@@ -739,6 +739,20 @@ function readJSON(key, fallback) {
 
 function writeJSON(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+const CLOUD_TIMEOUT = Symbol("cloud-timeout");
+
+function withTimeout(promise, ms, fallback) {
+  let timer = null;
+  return Promise.race([
+    promise.finally(() => {
+      if (timer) window.clearTimeout(timer);
+    }),
+    new Promise((resolve) => {
+      timer = window.setTimeout(() => resolve(fallback), ms);
+    }),
+  ]);
 }
 
 function prepareCloudData(data) {
@@ -4100,6 +4114,7 @@ function AppShell({ account, initialData, onLogout }) {
   const [language, setLanguage] = useState(() => localStorage.getItem(LANGUAGE_KEY) === "en" ? "en" : "es");
   const [cloudReady, setCloudReady] = useState(isAnonymousAccount);
   const [cloudStatus, setCloudStatus] = useState(isAnonymousAccount ? "local" : "loading");
+  const cloudErrorNotifiedRef = useRef(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuClosing, setMenuClosing] = useState(false);
   useEffect(() => {
@@ -4122,13 +4137,32 @@ function AppShell({ account, initialData, onLogout }) {
       return undefined;
     }
     let cancelled = false;
-    loadCloudWorkspace(accountEmail).then((workspace) => {
+    withTimeout(loadCloudWorkspace(accountEmail), 9000, CLOUD_TIMEOUT).then((workspace) => {
       if (cancelled) return;
+      if (workspace === CLOUD_TIMEOUT) {
+        setCloudReady(true);
+        setCloudStatus("error");
+        if (!cloudErrorNotifiedRef.current) {
+          cloudErrorNotifiedRef.current = true;
+          notify("No se pudo sincronizar con la nube. Revisá la conexión o Firebase.");
+        }
+        return;
+      }
       if (workspace?.data) {
         setData(normalizeStoredData(workspace.data, workspace.account || account));
       }
       setCloudReady(true);
       setCloudStatus("saved");
+      cloudErrorNotifiedRef.current = false;
+    }).catch((error) => {
+      console.warn("No se pudo sincronizar el espacio:", error);
+      if (cancelled) return;
+      setCloudReady(true);
+      setCloudStatus("error");
+      if (!cloudErrorNotifiedRef.current) {
+        cloudErrorNotifiedRef.current = true;
+        notify("No se pudo sincronizar con la nube. Revisá la conexión o Firebase.");
+      }
     });
     return () => {
       cancelled = true;
@@ -4138,14 +4172,34 @@ function AppShell({ account, initialData, onLogout }) {
   useEffect(() => {
     if (isAnonymousAccount) return undefined;
     if (!cloudReady) return undefined;
+    let cancelled = false;
     const timer = window.setTimeout(() => {
       setCloudStatus("saving");
-      saveCloudWorkspace(accountEmail, account, data).then((saved) => {
+      withTimeout(saveCloudWorkspace(accountEmail, account, data), 9000, false).then((saved) => {
+        if (cancelled) return;
         setCloudStatus(saved ? "saved" : "error");
-        if (!saved) notify("No se pudo guardar en la nube. Revisá la sesión o la configuración de Firebase.");
+        if (saved) {
+          cloudErrorNotifiedRef.current = false;
+          return;
+        }
+        if (!cloudErrorNotifiedRef.current) {
+          cloudErrorNotifiedRef.current = true;
+          notify("No se pudo guardar en la nube. Revisá la sesión o la configuración de Firebase.");
+        }
+      }).catch((error) => {
+        console.warn("No se pudo guardar el espacio:", error);
+        if (cancelled) return;
+        setCloudStatus("error");
+        if (!cloudErrorNotifiedRef.current) {
+          cloudErrorNotifiedRef.current = true;
+          notify("No se pudo guardar en la nube. Revisá la sesión o la configuración de Firebase.");
+        }
       });
     }, 800);
-    return () => window.clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [account, accountEmail, cloudReady, data, isAnonymousAccount]);
   useEffect(() => {
     if (!menuOpen) return undefined;
